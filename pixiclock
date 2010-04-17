@@ -1,0 +1,474 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2010 Alexey Michurin <a.michurin@gmail.com>,
+#                    Mihail Razuvaev (goglus) <goglus@gmail.com>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+
+# SETUP SECTIONS
+##################################### ALARM
+# You can set up alarm clock here.
+# Denote as more alarm times as you need.
+
+ALARMS = ['13:00', '09:00', '17:45']
+
+##################################### SKIN
+
+SKIN = {
+
+'border': 3,          # Border width
+
+'bgcolor': '#444444', # Backgtound
+
+'fgcolor': '#cccccc', # Foreground
+
+'scale': 2,           # Scaling factor
+
+'digits': (
+
+'''
+.OOOOO.
+O.....O
+O...O.O
+O..O..O
+O.O...O
+O.....O
+.OOOOO.
+
+''','''
+.O...O.
+.OOOOO.
+O..O..O
+.OOOOO.
+.OO.OO.
+.OOOOO.
+OO.O.OO
+
+''','''
+
+..OO...
+...O...
+...O...
+...O...
+...O...
+...O...
+.OOOOO.
+
+''','''
+OO...OO
+OOOOOOO
+O..O..O
+OOOOOOO
+O..O..O
+..OOO..
+OOOOOOO
+
+''','''
+
+.OOOOO.
+O.....O
+......O
+......O
+.OOOOO.
+O......
+OOOOOOO
+
+''','''
+..O.O..
+...O...
+.OOOOO.
+OO.O.OO
+OOOOOOO
+.OO.OO.
+..O.O..
+
+''','''
+
+.OOOOO.
+O.....O
+......O
+...OOO.
+......O
+O.....O
+.OOOOO.
+
+''','''
+.OOOOO.
+O.OOO.O
+.OO.OO.
+...O...
+O.OOO.O
+.OO.OO.
+O.OOO.O
+
+''','''
+
+....OOO
+...O..O
+..O...O
+.O....O
+OOOOOOO
+......O
+......O
+
+''','''
+.O...O.
+..OOO..
+O.O.O.O
+OOOOOOO
+..OOO..
+OOOOOOO
+O.....O
+
+''','''
+
+OOOOOOO
+O......
+OOOOOO.
+O.....O
+......O
+O.....O
+.OOOOO.
+
+''','''
+
+OOO.OOO
+..O.O..
+..OOO..
+.O.O.O.
+..O.O..
+..O.O..
+...O...
+
+''','''
+
+.OOOOO.
+O......
+OOOOOO.
+O.....O
+O.....O
+O.....O
+.OOOOO.
+
+''','''
+...O...
+.OO.OO.
+O.O.O.O
+OOOOOOO
+O..O..O
+OO.O.OO
+.OO.OO.
+
+''','''
+
+OOOOOOO
+......O
+.....O.
+....O..
+...O...
+...O...
+..OOO..
+
+''','''
+.O...O.
+.OOOOO.
+O.OOO.O
+.OOOOO.
+..OOO..
+..O.O..
+...O...
+
+''','''
+
+.OOOOO.
+O.....O
+O.....O
+.OOOOO.
+O.....O
+O.....O
+.OOOOO.
+
+''','''
+.OOOO..
+O.O.O..
+OOOOO.O
+...OOOO
+OOOOO..
+.OOOO..
+..O.O..
+
+''','''
+
+.OOOOO.
+O.....O
+O.....O
+O.....O
+.OOOOOO
+......O
+.OOOOO.
+
+''','''
+OOOOOOO
+O.OOO.O
+OOO.OOO
+.O...O.
+.OOOOO.
+..O.O..
+.OO.OO.
+
+''','''
+
+..
+OO
+OO
+..
+OO
+OO
+..
+'''
+)}
+
+#####################################
+# /SETUP SECTIONS
+
+
+VERSION = '0.2.0'
+
+
+from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, LEFT, Frame, GROOVE
+from time import localtime
+
+
+def pix2xbm(data, factor):
+    xbm = []
+    w = 0
+    h = 0
+    for l in data.strip().split():
+      for g in range(factor):
+        if w == 0:
+            w = len(l)*factor
+        h += 1
+        m = 1
+        n = True
+        for c in l:
+          for g in range(factor):
+            if n:
+                xbm.append(0)
+                n = False
+            if c == 'O':
+                xbm[-1] |= m
+            m *= 2
+            if m == 256:
+                m = 1
+                n = True
+    return ('#define x_width %d\n'
+            '#define x_height %d\n'
+            'static unsigned char x_bits[] = {\n'
+            '%s};\n'
+           ) % (w, h, ', '.join(map(lambda x: '0x%02x' % x, xbm)))
+
+
+class dialog(Toplevel):
+
+    def __init__(o, r, u, t):
+        Toplevel.__init__(o, r)
+        o.title(u)
+        k = Frame(o, borderwidth=0)
+        k.pack(padx=3, pady=3)
+        f = Frame(k, borderwidth=4, relief=GROOVE)
+        f.pack(padx=1, pady=1)
+        Label(f, text=t, justify=LEFT,
+              borderwidth=4).pack()
+        Button(k, text='Close', command=o.destroy, pady=0).pack(padx=1, pady=1)
+
+
+class popup_menu(Menu):
+
+    def __init__(o, r):
+        Menu.__init__(o, r, tearoff=0, font=('Helvetica', 8, 'bold'))
+        o.root = r
+        o.add_command(label='Alarms', command=o.alarms_dialog)
+        o.add_command(label='About', command=o.about_dialog)
+        o.add_command(label='Help', command=o.help_dialog)
+        o.add_command(label='Exit', command=r.quit)
+
+    def about_dialog(o):
+        dialog(o.root,
+           'About',
+           'PixiClock ' + VERSION + '\n'
+           '\n'
+           'Released under the terms of BSD license.\n'
+           '\n'
+           'Copyright (c) 2010\n'
+           '   Hacked by Alexey Michurin <a.michurin@gmail.com>\n'
+           '   Graphic design by Mihail Razuvaev (goglus) <goglus@gmail.com>\n'
+           '\n'
+           'PixiClock is tiny desktop clock widget for true geeks.\n'
+           '\n'
+           'Project homepage:\n'
+           '   http://pixiclock.googlecode.com/\n'
+           'More about pixi-culture:\n'
+           '   http://goglus.com/\n'
+           '   http://goglus.com/pixel/urod.htm')
+
+    def help_dialog(o):
+        dialog(o.root,
+           'Help',
+           'Looking for setup?\n'
+           '\n'
+           'Look into program source, sections ALARMS and SKIN.\n'
+           'Some bare comments helps you.\n'
+           '\n'
+           'Do not forget to make backup copy before you start\n'
+           'editing, and use the force, Luke!')
+
+    def alarms_dialog(o):
+        if ALARMS:
+            a = '\n'.join(ALARMS)
+        else:
+            a = '(empty)'
+        dialog(o.root,
+           'Alarms',
+           'List of alarms:\n' + a)
+
+
+class window(Tk):
+
+    def __init__(o):
+        Tk.__init__(o)
+        o.overrideredirect(True)
+        o.labels = []
+        for n in range(8):
+            l = Label(o)
+            o.labels.append(l)
+            l.grid(column=n, row=0)
+        o.popup = popup_menu(o)
+        o.load_skin()
+        o.digital_mode = False
+        o.alarm_mode = 0
+        o.alarm_x = None
+        o.alarm_y = None
+        o.alarm_done = ''
+        o.bind('<1>', o.start_motion)
+        o.bind('<3>', o.popup_menu)
+        o.bind('<B1-Motion>', o.continue_motion)
+        o.bind('<Enter>', o.mouse_enter)
+        o.timer_loop()
+
+    def popup_menu(o, e):
+        o.popup.tk_popup(e.x_root, e.y_root, 0)
+
+    def start_motion(o, e):
+        o.lift()
+        o.start_motion_x = e.x_root - o.winfo_x()
+        o.start_motion_y = e.y_root - o.winfo_y()
+
+    def continue_motion(o, e):
+        x = e.x_root - o.start_motion_x
+        y = e.y_root - o.start_motion_y
+        if -10 < x < 10:
+            x = 0
+        d = o.winfo_screenwidth() - o.winfo_width()
+        if -10 < x - d < 10:
+            x = d
+        if -10 < y < 10:
+            y = 0
+        d = o.winfo_screenheight() - o.winfo_height()
+        if -10 < y - d < 10:
+            y = d
+        o.geometry('+%d+%d' % (x, y))
+
+    def mouse_enter(o, e):
+        if not o.digital_mode:
+            o.lift()
+            o.digital_mode = True
+            o.update_digits()
+            o.after(2000, o.undigital_mode)
+
+    def undigital_mode(o):
+        o.digital_mode = False
+        o.update_digits()
+
+    def load_skin(o):
+        # ---
+        # May be, in future, i implement menudriven skin engine.
+        # I believe.
+        skin = SKIN
+        # ---
+        o.digits = []
+        for n in range(21):
+            d = pix2xbm(skin['digits'][n], skin['scale'])
+            o.digits.append(BitmapImage(data=d,
+                                        foreground=skin['fgcolor'],
+                                        background=skin['bgcolor']))
+        for l in o.labels:
+            l.configure(borderwidth=skin['border'],
+                        background=skin['bgcolor'])
+        for l in o.labels[2:6:3]:
+            l.configure(image=o.digits[20])
+
+    def update_digits(o):
+        hms = localtime()[3:6]
+        hm = '%02d:%02d' % tuple(hms[:2])
+        if hm in ALARMS and hm != o.alarm_done:
+            o.alarm_done = hm
+            o.start_alarm()
+        d = 1
+        if o.digital_mode:
+            d = 0
+        for n, v in enumerate(hms):
+            o.labels[n*3].configure(image=o.digits[(v/10)*2 + d])
+            o.labels[n*3+1].configure(image=o.digits[(v%10)*2 + d])
+
+    def timer_loop(o):
+        o.update_digits()
+        o.after(1000, o.timer_loop)
+
+    def start_alarm(o):
+        if o.alarm_mode:
+            return
+        o.alarm_mode = 1
+        o.alarm_x = o.winfo_x()
+        o.alarm_y = o.winfo_y()
+        o.continue_alarm()
+
+    def continue_alarm(o):
+        o.alarm_mode += 1
+        if o.alarm_mode > 50:
+            o.alarm_mode = 0
+            o.geometry('+%d+%d' % (o.alarm_x, o.alarm_y))
+        else:
+            o.lift()
+            dx, dy = 5*(1-2*(o.alarm_mode%2)), 0
+            if (o.alarm_mode/10)%2 == 0:
+               dx, dy = dy, dx
+            o.geometry('+%d+%d' % (
+                  (o.winfo_screenwidth() - o.winfo_width())/2 + dx,
+                  (o.winfo_screenheight() - o.winfo_height())/2 + dy)
+            )
+            o.after(100, o.continue_alarm)
+
+
+window().mainloop()

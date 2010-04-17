@@ -1,0 +1,42 @@
+PIXICLOCK
+---------
+
+PixiClock is tiny desktop clock widget for true geeks.
+
+It use original pixi-icons instead digits and show ordinary digits
+only as hint, when mouse comes over.
+
+Features:
+
+* Excentric and ascetic design
+* Build-in alarm clock
+* Snap-to-border support
+* Hints
+* Easy installation and configuration (for hackers)
+
+Project home: http://pixiclock.googlecode.com/
+
+
+INSTALL
+-------
+
+Standart installation procedure:
+
+$ wget http://pixiclock.googlecode.com/files/pixiclock-0.2.0.tar.gz
+$ tar xzf pixiclock-0.2.0.tar.gz
+$ cd pixiclock-0.2.0
+$ python setup.py build
+$ sudo python setup.py install
+
+You can install PixiClock with prefix:
+
+$ sudo python setup.py install --root /opt
+
+
+AUTHORS
+-------
+
+Code writen by Michurin Alexey <a.michurin@google.com>.
+The original Óoncept and graphic design belongs to
+Mihail Razuvaev (goglus) <goglus@gmail.com>.
+            
