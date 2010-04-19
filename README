@@ -22,15 +22,28 @@ INSTALL
 
 Standart installation procedure:
 
-$ wget http://pixiclock.googlecode.com/files/pixiclock-0.2.0.tar.gz
-$ tar xzf pixiclock-0.2.0.tar.gz
-$ cd pixiclock-0.2.0
+$ wget http://pixiclock.googlecode.com/files/pixiclock-VERSION.tar.gz
+$ tar xzf pixiclock-VERSION.tar.gz
+$ cd pixiclock-VERSION
 $ python setup.py build
 $ sudo python setup.py install
 
 You can install PixiClock with prefix:
 
 $ sudo python setup.py install --root /opt
+
+Now pixiclock ready to use:
+
+$ pixiclock -v
+$ pixiclock -h
+$ pixiclock
+
+Check network mode:
+
+$ pixiclock -p 7070 &
+$ telnet localhost 7070
+$ echo "OK!" | nc localhost 7070
+$ echo "BG=#770000;FG=#ffffff;RED OK!" | nc localhost 7070
 
 
 AUTHORS

@@ -254,11 +254,201 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 
 
-from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, LEFT, Frame, GROOVE
-from time import localtime
+from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, Frame, \
+                    LEFT, GROOVE, READABLE
+import time
+import socket
+import re
+import getopt
+import sys
+
+
+################ CONSTANTS #########################
+
+ABOUT = (  'PixiClock ' + VERSION + '\n'
+           '\n'
+           'Released under the terms of BSD license.\n'
+           '\n'
+           'Copyright (c) 2010\n'
+           '   Hacked by Alexey Michurin <a.michurin@gmail.com>\n'
+           '   Graphic design by Mihail Razuvaev (goglus) <goglus@gmail.com>\n'
+           '\n'
+           'PixiClock is tiny desktop clock widget for true geeks.\n'
+           '\n'
+           'Project homepage:\n'
+           '   http://pixiclock.googlecode.com/\n'
+           'More about pixi-culture:\n'
+           '   http://goglus.com/\n'
+           '   http://goglus.com/pixel/urod.htm'
+        )
+
+HELP =  (  'Comman line options.\n'
+           '\n'
+           ' -v       print version\n'
+           ' -h       print help message\n'
+           ' -p PORT  run pixiclock in network mode on PORT\n'
+           '          try\n'
+           '          $ telnet localhost PORT\n'
+           '\n'
+           'Looking for GUI setup? Configuration files?\n'
+           '\n'
+           'Look into program source, sections ALARMS and SKIN.\n'
+           'Some bare comments helps you.\n'
+           '\n'
+           'Do not forget to make backup copy before you start\n'
+           'editing, and use the force, Luke!'
+        )
+
+
+################ NETWORK FUNCTIONALITY #############
+# commands
+# BG=#000000
+# FG=#000000
+# GEOMETRY=-10-10
+# DELAY=1000
+# DURATION=5000
+
+
+class appendable_label(Label):
+
+    def __init__(o, r):
+        Label.__init__(o, r)
+        o.config(bg='#444444',
+                 fg='#cccccc',
+                 justify=LEFT,
+                 font=('Helvetica', 10, 'bold'))
+        o.label_text = ''
+
+    def append(o, text):
+        o.label_text += text
+        o.config(text=o.label_text.strip())
+
+    def vanish(o):
+        o.label_text = ''
+
+
+class prog_driver:
+
+    def __init__(o):
+        o.vanish()
+
+    def one(o):
+        o.i += 1
+        if o.i >= o.l:
+            return None
+        return o.a[o.i]
+
+    def vanish(o):
+        o.a = []
+        o.i = -1
+        o.l = 0
+
+    def append(o, e):
+        o.a.append(e)
+        o.l += 1
+
+
+class net_message(Toplevel):
+
+    def __init__(o, r, port):
+        Toplevel.__init__(o, r)
+        o.withdraw()
+        o.overrideredirect(True)
+        o.label = appendable_label(o)
+        o.label.pack()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(0)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,
+              sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
+        sock.bind(('127.0.0.1', port))
+        sock.listen(100)
+        o.tk.createfilehandler(sock, READABLE, o.accept_connection)
+        o.message = ''
+        o.hide_handler = None
+        o.prog_handler = None
+        o.prog_driver = prog_driver()
+        o.prog_re = re.compile('(BG|FG|GEOMETRY|DELAY|PROLONGATE)'
+                               '\s*[=:]\s*'
+                               '([-+#a-zA-Z0-9]+);?')
+
+    def accept_connection(o, s, m):
+        sock, addr = s.accept()
+        o.tk.createfilehandler(sock, READABLE, o.recv_data)
+
+    def recv_data(o, s, m):
+        d = s.recv(8000)
+        if d == '':
+            # close connecton
+            o.tk.deletefilehandler(s)
+            s.close()
+            # extract commands and message from text
+            pos = 0
+            o.prog_driver.vanish()
+            mess = ''
+            while True:
+                m = o.prog_re.search(o.message, pos)
+                if m is None:
+                    mess += o.message[pos:]
+                    break
+                o.prog_driver.append((m.group(1), m.group(2)))
+                mess += o.message[pos:m.start()]
+                pos = m.end()
+            o.message = '' # message processed
+            # init, defaults
+            o.label.append(mess)
+            o.lift()
+            o.geometry('-10-10')
+            o.label.config(bg='#444444', fg='#cccccc')
+            o.deiconify()
+            o.set_window_duration(5000)
+            # start program
+            o.exec_prog()
+        else:
+            o.message += d
+
+    def set_window_duration(o, d):
+        if not o.hide_handler is None:
+            o.after_cancel(o.hide_handler)
+        o.hide_handler = o.after(d, o.hide_window)
+
+    def hide_window(o):
+        o.withdraw()
+        o.hide_cancel = None
+        o.label.vanish()
+
+    def exec_prog(o):
+        if not o.prog_handler is None:
+            o.after_cancel(o.prog_handler)
+            o.prog_handler = None
+        try:
+            while True:
+                u = o.prog_driver.one()
+                if u is None:
+                    break
+                c, p = u
+                if c == 'BG':
+                    o.label.config(bg=p)
+                elif c == 'FG':
+                    o.label.config(fg=p)
+                elif c == 'GEOMETRY':
+                    o.geometry(p)
+                elif c == 'DELAY':
+                    o.prog_handler = o.after(int(p), o.exec_prog)
+                    break
+                elif c == PROLONGATE:
+                    o.set_window_duration(int(p))
+                else:
+                    raise Exception('Command %s?', c)
+        except Exception, e:
+            o.label.append('ERROR: ' + str(e))
+            o.label.config(bg='#660000', fg='#ffffff')
+            o.set_window_duration(10000)
+
+
+################ BASE FUCTIONALITY #################
 
 
 def pix2xbm(data, factor):
@@ -315,34 +505,10 @@ class popup_menu(Menu):
         o.add_command(label='Exit', command=r.quit)
 
     def about_dialog(o):
-        dialog(o.root,
-           'About',
-           'PixiClock ' + VERSION + '\n'
-           '\n'
-           'Released under the terms of BSD license.\n'
-           '\n'
-           'Copyright (c) 2010\n'
-           '   Hacked by Alexey Michurin <a.michurin@gmail.com>\n'
-           '   Graphic design by Mihail Razuvaev (goglus) <goglus@gmail.com>\n'
-           '\n'
-           'PixiClock is tiny desktop clock widget for true geeks.\n'
-           '\n'
-           'Project homepage:\n'
-           '   http://pixiclock.googlecode.com/\n'
-           'More about pixi-culture:\n'
-           '   http://goglus.com/\n'
-           '   http://goglus.com/pixel/urod.htm')
+        dialog(o.root, 'About', ABOUT)
 
     def help_dialog(o):
-        dialog(o.root,
-           'Help',
-           'Looking for setup?\n'
-           '\n'
-           'Look into program source, sections ALARMS and SKIN.\n'
-           'Some bare comments helps you.\n'
-           '\n'
-           'Do not forget to make backup copy before you start\n'
-           'editing, and use the force, Luke!')
+        dialog(o.root, HELP)
 
     def alarms_dialog(o):
         if ALARMS:
@@ -430,7 +596,7 @@ class window(Tk):
             l.configure(image=o.digits[20])
 
     def update_digits(o):
-        hms = localtime()[3:6]
+        hms = time.localtime()[3:6]
         hm = '%02d:%02d' % tuple(hms[:2])
         if hm in ALARMS and hm != o.alarm_done:
             o.alarm_done = hm
@@ -471,4 +637,38 @@ class window(Tk):
             o.after(100, o.continue_alarm)
 
 
-window().mainloop()
+def main():
+    # parse arguments
+    try:
+        show_version = False
+        show_help = False
+        net_port = -1
+        opts, args = getopt.getopt(sys.argv[1:], "vhp:")
+        for o, v in opts:
+            if o == '-p':
+                net_port = int(v)
+            elif o == '-v':
+                show_version = True
+            elif o == '-h':
+                show_help = True
+    except getopt.GetoptError, e:
+        print str(e)
+        return
+    except Exception, e:
+        print str(e)
+        return
+    if show_version:
+        print ABOUT
+        return
+    if show_help:
+        print HELP
+        return
+    # start application
+    r = window()
+    if net_port > 0:
+        net_message(r, net_port)
+    r.mainloop()
+
+
+if __name__ == "__main__":
+    main()
