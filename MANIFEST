@@ -1,3 +1,9 @@
+demos/check-gmail-simple.sh
+demos/demo.sh
+demos/check-gmail-tricky.sh
+demos/check-ping.sh
+skins/smalldigits.ini
+skins/infragreen.ini
 MANIFEST
 README
 pixiclock

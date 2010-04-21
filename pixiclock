@@ -31,8 +31,10 @@
 ##################################### ALARM
 # You can set up alarm clock here.
 # Denote as more alarm times as you need.
+#
+# version 0.3.1: Use option -a HH:MM
 
-ALARMS = ['13:00', '09:00', '17:45']
+ALARMS = ['09:00', '17:45']
 
 ##################################### SKIN
 
@@ -254,11 +256,12 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 
 
 from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, Frame, \
                     LEFT, GROOVE, READABLE
+from ConfigParser import ConfigParser
 import time
 import socket
 import re
@@ -287,11 +290,17 @@ ABOUT = (  'PixiClock ' + VERSION + '\n'
 
 HELP =  (  'Comman line options.\n'
            '\n'
-           ' -v       print version\n'
-           ' -h       print help message\n'
-           ' -p PORT  run pixiclock in network mode on PORT\n'
-           '          try\n'
-           '          $ telnet localhost PORT\n'
+           '-v\n'
+           '    print version\n'
+           '-h\n'
+           '    print help message\n'
+           '-p PORT\n'
+           '    run pixiclock in network mode on PORT; try\n'
+           '    $ telnet localhost PORT\n'
+           '-a HH:MM\n'
+           '    set up alarm; can be used many times\n'
+           '-f file\n'
+           '    load skin from configuration file\n'
            '\n'
            'Looking for GUI setup? Configuration files?\n'
            '\n'
@@ -309,47 +318,6 @@ HELP =  (  'Comman line options.\n'
 # FG=#000000
 # GEOMETRY=-10-10
 # DELAY=1000
-# DURATION=5000
-
-
-class appendable_label(Label):
-
-    def __init__(o, r):
-        Label.__init__(o, r)
-        o.config(bg='#444444',
-                 fg='#cccccc',
-                 justify=LEFT,
-                 font=('Helvetica', 10, 'bold'))
-        o.label_text = ''
-
-    def append(o, text):
-        o.label_text += text
-        o.config(text=o.label_text.strip())
-
-    def vanish(o):
-        o.label_text = ''
-
-
-class prog_driver:
-
-    def __init__(o):
-        o.vanish()
-
-    def one(o):
-        o.i += 1
-        if o.i >= o.l:
-            return None
-        return o.a[o.i]
-
-    def vanish(o):
-        o.a = []
-        o.i = -1
-        o.l = 0
-
-    def append(o, e):
-        o.a.append(e)
-        o.l += 1
-
 
 class net_message(Toplevel):
 
@@ -357,7 +325,12 @@ class net_message(Toplevel):
         Toplevel.__init__(o, r)
         o.withdraw()
         o.overrideredirect(True)
-        o.label = appendable_label(o)
+        o.title('pixiclock message')
+        o.label = Label(o,
+                        bg='#444444',
+                        fg='#cccccc',
+                        justify=LEFT,
+                        font=('Helvetica', 10, 'bold'))
         o.label.pack()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(0)
@@ -367,9 +340,8 @@ class net_message(Toplevel):
         sock.listen(100)
         o.tk.createfilehandler(sock, READABLE, o.accept_connection)
         o.message = ''
-        o.hide_handler = None
         o.prog_handler = None
-        o.prog_driver = prog_driver()
+        o.prog = []
         o.prog_re = re.compile('(BG|FG|GEOMETRY|DELAY|PROLONGATE)'
                                '\s*[=:]\s*'
                                '([-+#a-zA-Z0-9]+);?')
@@ -386,49 +358,50 @@ class net_message(Toplevel):
             s.close()
             # extract commands and message from text
             pos = 0
-            o.prog_driver.vanish()
+            prog = []
             mess = ''
+            pre_defaults = {'GEOMETRY': '-10-10',
+                            'BG': '#444444',
+                            'FG': '#cccccc'}
+            delay_found = False
             while True:
                 m = o.prog_re.search(o.message, pos)
                 if m is None:
                     mess += o.message[pos:]
                     break
-                o.prog_driver.append((m.group(1), m.group(2)))
+                c = m.group(1)
+                p = m.group(2)
+                delay_found = delay_found or c == 'DELAY'
+                if not delay_found:
+                    try:
+                        del pre_defaults[c]
+                    except KeyError:
+                        pass
+                prog.append((c, p))
                 mess += o.message[pos:m.start()]
                 pos = m.end()
             o.message = '' # message processed
-            # init, defaults
-            o.label.append(mess)
-            o.lift()
-            o.geometry('-10-10')
-            o.label.config(bg='#444444', fg='#cccccc')
-            o.deiconify()
-            o.set_window_duration(5000)
+            o.prog.extend([('TEXT', mess.strip())] +
+                          pre_defaults.items() +
+                          prog)
+            if not delay_found:
+                o.prog.append(('DELAY', 5000))
             # start program
-            o.exec_prog()
+            if o.prog_handler is None:
+                # we will show window later, on first DELAY
+                o.exec_prog_step()
         else:
             o.message += d
 
-    def set_window_duration(o, d):
-        if not o.hide_handler is None:
-            o.after_cancel(o.hide_handler)
-        o.hide_handler = o.after(d, o.hide_window)
-
-    def hide_window(o):
-        o.withdraw()
-        o.hide_cancel = None
-        o.label.vanish()
-
-    def exec_prog(o):
-        if not o.prog_handler is None:
-            o.after_cancel(o.prog_handler)
-            o.prog_handler = None
+    def exec_prog_step(o):
         try:
             while True:
-                u = o.prog_driver.one()
-                if u is None:
-                    break
-                c, p = u
+                if len(o.prog) == 0:
+                    o.withdraw()
+                    o.prog_handler = None
+                    return
+                c, p = o.prog[0]
+                o.prog = o.prog[1:]
                 if c == 'BG':
                     o.label.config(bg=p)
                 elif c == 'FG':
@@ -436,16 +409,24 @@ class net_message(Toplevel):
                 elif c == 'GEOMETRY':
                     o.geometry(p)
                 elif c == 'DELAY':
-                    o.prog_handler = o.after(int(p), o.exec_prog)
+                    if o.prog_handler is None:
+                        o.deiconify()
+                        o.lift()
+                    o.prog_handler = o.after(int(p), o.exec_prog_step)
                     break
-                elif c == PROLONGATE:
-                    o.set_window_duration(int(p))
+                elif c == 'TEXT':
+                    o.label.config(text=p)
                 else:
                     raise Exception('Command %s?', c)
         except Exception, e:
-            o.label.append('ERROR: ' + str(e))
-            o.label.config(bg='#660000', fg='#ffffff')
-            o.set_window_duration(10000)
+            err = 'ERROR %s=%s: %s' % (c, p, str(e))
+            print err
+            o.prog = [('TEXT', str(err)),
+                      ('GEOMETRY', '-10-100'),
+                      ('BG', '#990000'),
+                      ('FG', '#ffffff'),
+                      ('DELAY', 10000)]
+            o.prog_handler = o.after(0, o.exec_prog_step)
 
 
 ################ BASE FUCTIONALITY #################
@@ -508,7 +489,7 @@ class popup_menu(Menu):
         dialog(o.root, 'About', ABOUT)
 
     def help_dialog(o):
-        dialog(o.root, HELP)
+        dialog(o.root, 'Help', HELP)
 
     def alarms_dialog(o):
         if ALARMS:
@@ -522,9 +503,10 @@ class popup_menu(Menu):
 
 class window(Tk):
 
-    def __init__(o):
+    def __init__(o, alarms):
         Tk.__init__(o)
         o.overrideredirect(True)
+        o.title('pixiclock')
         o.labels = []
         for n in range(8):
             l = Label(o)
@@ -533,6 +515,7 @@ class window(Tk):
         o.popup = popup_menu(o)
         o.load_skin()
         o.digital_mode = False
+        o.alarms = alarms + ALARMS
         o.alarm_mode = 0
         o.alarm_x = None
         o.alarm_y = None
@@ -598,7 +581,7 @@ class window(Tk):
     def update_digits(o):
         hms = time.localtime()[3:6]
         hm = '%02d:%02d' % tuple(hms[:2])
-        if hm in ALARMS and hm != o.alarm_done:
+        if hm in o.alarms and hm != o.alarm_done:
             o.alarm_done = hm
             o.start_alarm()
         d = 1
@@ -637,13 +620,34 @@ class window(Tk):
             o.after(100, o.continue_alarm)
 
 
+def load_skin(file):
+    conf = ConfigParser()
+    conf.read(file)
+    sections = conf.sections()
+    if len(sections) == 0:
+        raise Exception('There are no sections found in configuration file %s' % file)
+    for sect in conf.sections():
+        for k, t in (('border', int),
+                     ('bgcolor', str),
+                     ('fgcolor', str),
+                     ('scale', int)):
+            SKIN[k] = t(conf.get(sect, k))
+        a = []
+        for i in range(10):
+            a.append(conf.get(sect, 'digit%d' % i))
+            a.append(conf.get(sect, 'icon%d' % i))
+        a.append(conf.get(sect, 'separator'))
+        SKIN['digits'] = a
+
+
 def main():
     # parse arguments
     try:
         show_version = False
         show_help = False
         net_port = -1
-        opts, args = getopt.getopt(sys.argv[1:], "vhp:")
+        alarms = []
+        opts, args = getopt.getopt(sys.argv[1:], "vhp:a:f:")
         for o, v in opts:
             if o == '-p':
                 net_port = int(v)
@@ -651,6 +655,15 @@ def main():
                 show_version = True
             elif o == '-h':
                 show_help = True
+            elif o == '-a':
+                p = v
+                if len(p) == 4:
+                    p = '0' + p
+                if not re.match(r'^[0-2]\d:[0-5]\d$', p):
+                    raise Exception('Incorrect time format %s. Must be HH:MM.' % v)
+                alarms.append(p)
+            elif o == '-f':
+                load_skin(v)
     except getopt.GetoptError, e:
         print str(e)
         return
@@ -664,7 +677,7 @@ def main():
         print HELP
         return
     # start application
-    r = window()
+    r = window(alarms)
     if net_port > 0:
         net_message(r, net_port)
     r.mainloop()

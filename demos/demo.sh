@@ -34,12 +34,31 @@
 
 PORT=7070
 
+animation=`
+  echo -n 'BG=#ff0000; FG=#ffff00; DELAY=1000; '
+  for i in 0 f 0 f 0 f 0 f 0 f 0 f 0 f 0 f
+  do
+    echo -n "BG=#${i}${i}0000; DELAY=200; "
+  done
+  echo 'Color animation DELAY=2000'
+`
+
+twist=`(
+  echo -n 'BG=#ffff00; FG=#660000; DELAY=1000; Twist now!'
+  for i in 10 20 30 40 50 60 70 80
+  do
+    echo -n "GEOMETRY=-$i-10; DELAY=150; "
+  done
+  echo -n 'DELAY=1000')`
+
 for i in 'Simplest messate (5 seconds)' \
-         'FG=#ff0000;Red message' \
-         'BG=#ff0000;FG=#ffff00;Red background' \
-         'BG=#ff0000;FG=#ffff00;DELAY=1000;BG=#ffffff;FG=#000000;DELAY=400;FG=#cccccc;BG=#444444;Color animation'
+         'FG=#ff0000 Red message' \
+         'BG=#ff0000 FG=#ffff00 Red background' \
+         "$animation" \
+         "$twist"
 do
-    echo "Message: $i"
+    echo '----'
+    echo "Message: \"$i\""
     echo "$i" | nc localhost $PORT
-    sleep 2
+    sleep 1
 done

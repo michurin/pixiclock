@@ -40,5 +40,5 @@ sed -n '/title/ p' |
 sed 's/<title>/- /;s/<.title>/ -/'`
 if test "a$f" != 'a'
 then
-  echo "BG=#000000;FG=#ffffff;DELAY=300;$f" | nc localhost 7070
+  echo "BG=#000000;FG=#ffffff;DELAY=3000;$f" | nc localhost 7070
 fi

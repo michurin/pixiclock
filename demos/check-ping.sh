@@ -27,31 +27,18 @@
 #
 
 #
-# This very simple script to check GMail and notify if any.
-#
-# How to setup.
-#
-# 1) Put this script where you want. Lets say:
-# $ cp check-gmail-simple.sh /HOME/USER/bin/check-gmail-simple.sh
-#
-# 2) Setup your ~/.netrc file. Add section like this:
-# machine mail.google.com
-#         login your-gmail-login
-#         password your-gmail-password
-#
-# 3) Add script to crontab to check GMail every 10 minutes:
-# $ crontab -e
-# add line
-# */10 * * * * /HOME/USER/bin/check-gmail-simple.sh
-#
-# 4) Force pixiclock to listen notifications:
-# $ pixiclock -p 7070
-#
-# Enjoy!
+# This very simple script to check is hosts reachable.
 #
 
-curl -n 'https://mail.google.com/mail/feed/atom' 2>/dev/null |
-sed -n '/fullcount/p' |
-grep '>0<' >/dev/null ||
-echo 'BG=#880000;FG=#ffffff;DELAY=600;BG=#444444;DELAY=600;New GMail!' |
-nc localhost 7070
+hosts='greenwood.endofinternet.net ya.ru not-exists.oo'
+
+a=''
+for i in $hosts
+do
+  ping -c 1 "$i" >/dev/null 2>&1 || a="$a\nHOST $i: PING FAILED"
+done
+if test "a$a" != 'a'
+then
+  echo -e "GEOMETRY=+100+100;BG=#ff0000;FG=#ffffff;$a" |
+  nc localhost 7070
+fi
