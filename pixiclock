@@ -27,16 +27,7 @@
 # SUCH DAMAGE.
 #
 
-# SETUP SECTIONS
-##################################### ALARM
-# You can set up alarm clock here.
-# Denote as more alarm times as you need.
-#
-# version 0.3.1: Use option -a HH:MM
-
-ALARMS = ['09:00', '17:45']
-
-##################################### SKIN
+##################################### GENERIC SKIN
 
 SKIN = {
 
@@ -256,20 +247,23 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 
 
-from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, Frame, \
-                    LEFT, GROOVE, READABLE
-from ConfigParser import ConfigParser
 import time
 import socket
 import re
 import getopt
 import sys
+import os
+from ConfigParser import ConfigParser
+from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, Frame, \
+                    LEFT, GROOVE, READABLE, NORMAL, DISABLED, \
+                    StringVar
 
 
 ################ CONSTANTS #########################
+
 
 ABOUT = (  'PixiClock ' + VERSION + '\n'
            '\n'
@@ -288,6 +282,7 @@ ABOUT = (  'PixiClock ' + VERSION + '\n'
            '   http://goglus.com/pixel/urod.htm'
         )
 
+
 HELP =  (  'Comman line options.\n'
            '\n'
            '-v\n'
@@ -299,16 +294,14 @@ HELP =  (  'Comman line options.\n'
            '    $ telnet localhost PORT\n'
            '-a HH:MM\n'
            '    set up alarm; can be used many times\n'
-           '-f file\n'
-           '    load skin from configuration file\n'
-           '\n'
-           'Looking for GUI setup? Configuration files?\n'
-           '\n'
-           'Look into program source, sections ALARMS and SKIN.\n'
-           'Some bare comments helps you.\n'
-           '\n'
-           'Do not forget to make backup copy before you start\n'
-           'editing, and use the force, Luke!'
+           '-f FILE\n'
+           '    load skin from configuration file;\n'
+           '    can be used many times to load diferent\n'
+           '    skins in conjunction\n'
+           '-w\n'
+           '    do not ignore window manager\n'
+           '-d\n'
+           '    daemonize'
         )
 
 
@@ -319,9 +312,20 @@ HELP =  (  'Comman line options.\n'
 # GEOMETRY=-10-10
 # DELAY=1000
 
+
+def open_socket(port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setblocking(0)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,
+           sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
+    sock.bind(('127.0.0.1', port))
+    sock.listen(100)
+    return sock
+
+
 class net_message(Toplevel):
 
-    def __init__(o, r, port):
+    def __init__(o, r, sock):
         Toplevel.__init__(o, r)
         o.withdraw()
         o.overrideredirect(True)
@@ -332,12 +336,6 @@ class net_message(Toplevel):
                         justify=LEFT,
                         font=('Helvetica', 10, 'bold'))
         o.label.pack()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(0)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,
-              sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
-        sock.bind(('127.0.0.1', port))
-        sock.listen(100)
         o.tk.createfilehandler(sock, READABLE, o.accept_connection)
         o.message = ''
         o.prog_handler = None
@@ -470,8 +468,7 @@ class dialog(Toplevel):
         k.pack(padx=3, pady=3)
         f = Frame(k, borderwidth=4, relief=GROOVE)
         f.pack(padx=1, pady=1)
-        Label(f, text=t, justify=LEFT,
-              borderwidth=4).pack()
+        Label(f, text=t, justify=LEFT, borderwidth=4).pack()
         Button(k, text='Close', command=o.destroy, pady=0).pack(padx=1, pady=1)
 
 
@@ -480,6 +477,19 @@ class popup_menu(Menu):
     def __init__(o, r):
         Menu.__init__(o, r, tearoff=0, font=('Helvetica', 8, 'bold'))
         o.root = r
+        o.skin_menu = Menu(o, tearoff=0, font=('Helvetica', 8, 'bold'))
+        items = r.skins.get_names()
+        s = DISABLED
+        if len(items) > 1:
+            s = NORMAL
+            o.skin = StringVar(o, r.skins.get_name())
+            for m in items:
+                o.skin_menu.add_radiobutton(
+                    label=m,
+                    command=o.update_skin,
+                    variable=o.skin,
+                    value=m)
+        o.add_cascade(label='Skins', menu=o.skin_menu, state=s)
         o.add_command(label='Alarms', command=o.alarms_dialog)
         o.add_command(label='About', command=o.about_dialog)
         o.add_command(label='Help', command=o.help_dialog)
@@ -492,37 +502,42 @@ class popup_menu(Menu):
         dialog(o.root, 'Help', HELP)
 
     def alarms_dialog(o):
-        if ALARMS:
-            a = '\n'.join(ALARMS)
+        if o.root.alarms:
+            a = 'List of alarms:\n\n' + '\n'.join(o.root.alarms)
         else:
-            a = '(empty)'
-        dialog(o.root,
-           'Alarms',
-           'List of alarms:\n' + a)
+            a = 'Alarms not set.\n\nUse option -a HH:MM\nto set up alarms.'
+        dialog(o.root, 'Alarms', a)
+
+    def update_skin(o):
+        o.root.skins.set_name(o.skin.get())
+        o.root.load_skin()
+        o.root.update_digits()
 
 
 class window(Tk):
 
-    def __init__(o, alarms):
+    def __init__(o, alarms, skins, ignore_wm):
         Tk.__init__(o)
-        o.overrideredirect(True)
+        if ignore_wm:
+            o.overrideredirect(True)
+            o.bind('<1>', o.start_motion)
+            o.bind('<B1-Motion>', o.continue_motion)
         o.title('pixiclock')
         o.labels = []
         for n in range(8):
             l = Label(o)
             o.labels.append(l)
             l.grid(column=n, row=0)
-        o.popup = popup_menu(o)
-        o.load_skin()
-        o.digital_mode = False
-        o.alarms = alarms + ALARMS
+        o.alarms = alarms # used by o.popup
         o.alarm_mode = 0
         o.alarm_x = None
         o.alarm_y = None
         o.alarm_done = ''
-        o.bind('<1>', o.start_motion)
+        o.skins = skins # used by o.popup
+        o.popup = popup_menu(o)
+        o.load_skin()
+        o.digital_mode = False
         o.bind('<3>', o.popup_menu)
-        o.bind('<B1-Motion>', o.continue_motion)
         o.bind('<Enter>', o.mouse_enter)
         o.timer_loop()
 
@@ -561,22 +576,26 @@ class window(Tk):
         o.update_digits()
 
     def load_skin(o):
-        # ---
-        # May be, in future, i implement menudriven skin engine.
-        # I believe.
-        skin = SKIN
-        # ---
+        skin = o.skins.get()
         o.digits = []
+        # load and save bitmaps; Tk does not save it in parent objects
         for n in range(21):
             d = pix2xbm(skin['digits'][n], skin['scale'])
             o.digits.append(BitmapImage(data=d,
                                         foreground=skin['fgcolor'],
                                         background=skin['bgcolor']))
+        # assign images to labels; we must do it before any
+        # other set up operations and labels reconfiguration
+        # cose we lost old images now
+        for n, l in enumerate(o.labels):
+            p = 0
+            if (n+1)%3 == 0:
+                p = 20
+            l.configure(image=o.digits[p])
+        # configure labels
         for l in o.labels:
             l.configure(borderwidth=skin['border'],
                         background=skin['bgcolor'])
-        for l in o.labels[2:6:3]:
-            l.configure(image=o.digits[20])
 
     def update_digits(o):
         hms = time.localtime()[3:6]
@@ -620,24 +639,106 @@ class window(Tk):
             o.after(100, o.continue_alarm)
 
 
-def load_skin(file):
-    conf = ConfigParser()
-    conf.read(file)
-    sections = conf.sections()
-    if len(sections) == 0:
-        raise Exception('There are no sections found in configuration file %s' % file)
-    for sect in conf.sections():
-        for k, t in (('border', int),
-                     ('bgcolor', str),
-                     ('fgcolor', str),
-                     ('scale', int)):
-            SKIN[k] = t(conf.get(sect, k))
-        a = []
-        for i in range(10):
-            a.append(conf.get(sect, 'digit%d' % i))
-            a.append(conf.get(sect, 'icon%d' % i))
-        a.append(conf.get(sect, 'separator'))
-        SKIN['digits'] = a
+class odict: # not complete but sufficient implementation of ordered dictionary
+
+    def __init__(o):
+        o.dt = {}
+        o.ks = []
+
+    def __iter__(o):
+        for i in o.ks:
+            yield i, o.dt[i]
+
+    def __setitem__(o, k, v):
+        if not k in o.ks:
+            o.ks.append(k)
+        o.dt[k] = v
+
+    def __getitem__(o, k):
+        return o.dt[k]
+
+    def keys(o):
+        return o.ks[:]
+
+
+class skin_base:
+
+    def __init__(o, files):
+        o.def_skin = None
+        o.skins_base = {'generic': SKIN}
+        o.names = [] # in order as in config
+        for file in files:
+            conf = ConfigParser()
+            # experimental hack
+            conf._sections = odict()
+            conf._dict = odict # python 2.6
+            # /hack
+            conf.read(file)
+            sections = conf.sections()
+            if len(sections) == 0:
+                raise Exception('There are no sections found '
+                                'in configuration file %s' % file)
+            for sect in conf.sections():
+                skin = {}
+                for k, t in (('border', int),
+                             ('bgcolor', str),
+                             ('fgcolor', str),
+                             ('scale', int)):
+                    skin[k] = t(conf.get(sect, k))
+                a = []
+                for i in range(10):
+                    a.append(conf.get(sect, 'digit%d' % i))
+                    a.append(conf.get(sect, 'icon%d' % i))
+                a.append(conf.get(sect, 'separator'))
+                skin['digits'] = a
+                name = sect
+                fix = 0
+                while name in o.skins_base:
+                    fix += 1
+                    name = '%s (%d)' % (sect, fix)
+                if o.def_skin is None:
+                    o.def_skin = name
+                o.skins_base[name] = skin
+                o.names.append(name)
+        if o.def_skin is None:
+            o.def_skin = 'generic'
+        o.names.append('generic')
+
+    def get(o):
+        return o.skins_base[o.def_skin]
+
+    def get_name(o):
+        return o.def_skin
+
+    def get_names(o):
+        return o.names
+
+    def set_name(o, s):
+        o.def_skin = s
+
+
+def daemonize():
+        # base on "Advanced Programming in the UNIX Environment"
+        # do first fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError, e:
+            sys.stderr.write('fork #1 failed: %d (%s)' % (e.errno, e.strerror))
+            sys.exit(1)
+        # decouple from parent environment
+        os.chdir('/')   # prevent unmounting
+        os.setsid()
+        os.umask(022)
+        # do second fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError, e:
+            sys.stderr.write('fork #2 failed: %d (%s)' % (e.errno, e.strerror))
+            sys.exit(1)
 
 
 def main():
@@ -647,10 +748,14 @@ def main():
         show_help = False
         net_port = -1
         alarms = []
-        opts, args = getopt.getopt(sys.argv[1:], "vhp:a:f:")
+        skin_files = []
+        ignore_wm = True
+        daemonize_app = False
+        sock = None
+        opts, args = getopt.getopt(sys.argv[1:], 'dwvhp:a:f:')
         for o, v in opts:
             if o == '-p':
-                net_port = int(v)
+                sock = open_socket(int(v))
             elif o == '-v':
                 show_version = True
             elif o == '-h':
@@ -660,15 +765,21 @@ def main():
                 if len(p) == 4:
                     p = '0' + p
                 if not re.match(r'^[0-2]\d:[0-5]\d$', p):
-                    raise Exception('Incorrect time format %s. Must be HH:MM.' % v)
+                    raise Exception(
+                          'Incorrect time format %s. Must be HH:MM.' % v)
                 alarms.append(p)
             elif o == '-f':
-                load_skin(v)
+                skin_files.append(v)
+            elif o == '-w':
+                ignore_wm = False
+            elif o == '-d':
+                daemonize_app = True
+        skins = skin_base(skin_files)
     except getopt.GetoptError, e:
         print str(e)
         return
     except Exception, e:
-        print str(e)
+        print '%s: %s' % (str(e.__class__), str(e))
         return
     if show_version:
         print ABOUT
@@ -677,11 +788,15 @@ def main():
         print HELP
         return
     # start application
-    r = window(alarms)
-    if net_port > 0:
-        net_message(r, net_port)
+    r = window(alarms, skins, ignore_wm)
+    # start neworking if confugured
+    if sock:
+        net_message(r, sock)
+    # ok. main loop
+    if daemonize_app:
+        daemonize()
     r.mainloop()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

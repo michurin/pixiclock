@@ -35,15 +35,37 @@ $ sudo python setup.py install --root /opt
 Now pixiclock ready to use:
 
 $ pixiclock -v
-$ pixiclock -h
+
+
+QUICKSTART
+----------
+
+Just start pixiclock:
+
 $ pixiclock
 
-Check network mode:
+Start as alarm clock (at 9:00 and 17:00):
+
+$ pixiclock -a 9:00 -a 17:00
+
+Load external skins (see root-menu/Skins):
+
+$ pixiclock -f skins/tiny.ini
+
+Start as diemon:
+
+$ pixiclock -d
+
+
+NETWORK SCOPE
+-------------
 
 $ pixiclock -p 7070 &
 $ telnet localhost 7070
 $ echo "OK!" | nc localhost 7070
 $ echo "BG=#770000;FG=#ffffff;RED OK!" | nc localhost 7070
+
+You can find more eamples in demos/
 
 
 AUTHORS

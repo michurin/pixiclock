@@ -1,10 +1,10 @@
-demos/check-gmail-simple.sh
-demos/demo.sh
-demos/check-gmail-tricky.sh
-demos/check-ping.sh
-skins/smalldigits.ini
-skins/infragreen.ini
 MANIFEST
 README
+demos/check-gmail-simple.sh
+demos/check-gmail-tricky.sh
+demos/check-ping.sh
+demos/demo.sh
 pixiclock
 setup.py
+skins/pixiclock.ini
+skins/tiny.ini
