@@ -7,7 +7,7 @@ except Exception, e:
     exit(1)
 
 setup(name       = 'pixiclock',
-      version    = '0.3.2',
+      version    = '0.3.3',
       author     = 'Alexey Michurin',
       author_email = 'a.michurin@gmail.com',
       maintainer = 'Alexey Michurin',
@@ -21,5 +21,5 @@ setup(name       = 'pixiclock',
                     ' It use original pixi-icons instead digits and show'
                     ' ordinary digits only as hint, when mouse comes over.',
       download_url = 'http://pixiclock.googlecode.com/',
-      scripts    = ('pixiclock',),
+      scripts    = ('pixiclock', 'pixiclock-client'),
      )

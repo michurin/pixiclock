@@ -247,7 +247,7 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.3.2'
+VERSION = '0.3.3'
 
 
 import time
@@ -292,6 +292,8 @@ HELP =  (  'Comman line options.\n'
            '-p PORT\n'
            '    run pixiclock in network mode on PORT; try\n'
            '    $ telnet localhost PORT\n'
+           '-n\n'
+           '    same as -p 7070\n'
            '-a HH:MM\n'
            '    set up alarm; can be used many times\n'
            '-f FILE\n'
@@ -323,6 +325,23 @@ def open_socket(port):
     return sock
 
 
+class channel:
+
+    def __init__(o, w, sock):
+        o.window = w
+        o.buffer = ''
+        o.window.tk.createfilehandler(sock, READABLE, o)
+
+    def __call__(o, s, m):
+        d = s.recv(8000)
+        if d == '':
+            o.window.tk.deletefilehandler(s)
+            s.close()
+            o.window.accept_data(o.buffer)
+        else:
+            o.buffer += d
+
+
 class net_message(Toplevel):
 
     def __init__(o, r, sock):
@@ -337,7 +356,6 @@ class net_message(Toplevel):
                         font=('Helvetica', 10, 'bold'))
         o.label.pack()
         o.tk.createfilehandler(sock, READABLE, o.accept_connection)
-        o.message = ''
         o.prog_handler = None
         o.prog = []
         o.prog_re = re.compile('(BG|FG|GEOMETRY|DELAY|PROLONGATE)'
@@ -346,50 +364,41 @@ class net_message(Toplevel):
 
     def accept_connection(o, s, m):
         sock, addr = s.accept()
-        o.tk.createfilehandler(sock, READABLE, o.recv_data)
+        channel(o, sock)
 
-    def recv_data(o, s, m):
-        d = s.recv(8000)
-        if d == '':
-            # close connecton
-            o.tk.deletefilehandler(s)
-            s.close()
-            # extract commands and message from text
-            pos = 0
-            prog = []
-            mess = ''
-            pre_defaults = {'GEOMETRY': '-10-10',
-                            'BG': '#444444',
-                            'FG': '#cccccc'}
-            delay_found = False
-            while True:
-                m = o.prog_re.search(o.message, pos)
-                if m is None:
-                    mess += o.message[pos:]
-                    break
-                c = m.group(1)
-                p = m.group(2)
-                delay_found = delay_found or c == 'DELAY'
-                if not delay_found:
-                    try:
-                        del pre_defaults[c]
-                    except KeyError:
-                        pass
-                prog.append((c, p))
-                mess += o.message[pos:m.start()]
-                pos = m.end()
-            o.message = '' # message processed
-            o.prog.extend([('TEXT', mess.strip())] +
-                          pre_defaults.items() +
-                          prog)
+    def accept_data(o, data):
+        pos = 0
+        prog = []
+        mess = ''
+        pre_defaults = {'GEOMETRY': '-10-10',
+                        'BG': '#444444',
+                        'FG': '#cccccc'}
+        delay_found = False
+        while True:
+            m = o.prog_re.search(data, pos)
+            if m is None:
+                mess += data[pos:]
+                break
+            c = m.group(1)
+            p = m.group(2)
+            delay_found = delay_found or c == 'DELAY'
             if not delay_found:
-                o.prog.append(('DELAY', 5000))
-            # start program
-            if o.prog_handler is None:
-                # we will show window later, on first DELAY
-                o.exec_prog_step()
-        else:
-            o.message += d
+                try:
+                    del pre_defaults[c]
+                except KeyError:
+                    pass
+            prog.append((c, p))
+            mess += data[pos:m.start()]
+            pos = m.end()
+        o.prog.extend([('TEXT', mess.strip())] +
+                      pre_defaults.items() +
+                      prog)
+        if not delay_found:
+            o.prog.append(('DELAY', 5000))
+        # start program
+        if o.prog_handler is None:
+            # we will show window later, on first DELAY
+            o.exec_prog_step()
 
     def exec_prog_step(o):
         try:
@@ -435,23 +444,23 @@ def pix2xbm(data, factor):
     w = 0
     h = 0
     for l in data.strip().split():
-      for g in range(factor):
-        if w == 0:
-            w = len(l)*factor
-        h += 1
-        m = 1
-        n = True
-        for c in l:
-          for g in range(factor):
-            if n:
-                xbm.append(0)
-                n = False
-            if c == 'O':
-                xbm[-1] |= m
-            m *= 2
-            if m == 256:
-                m = 1
-                n = True
+        for p in range(factor):
+            if w == 0:
+                w = len(l)*factor
+            h += 1
+            m = 1
+            n = True
+            for c in l:
+                for q in range(factor):
+                    if n:
+                        xbm.append(0)
+                        n = False
+                    if c == 'O':
+                        xbm[-1] |= m
+                    m *= 2
+                    if m == 256:
+                        m = 1
+                        n = True
     return ('#define x_width %d\n'
             '#define x_height %d\n'
             'static unsigned char x_bits[] = {\n'
@@ -752,10 +761,14 @@ def main():
         ignore_wm = True
         daemonize_app = False
         sock = None
-        opts, args = getopt.getopt(sys.argv[1:], 'dwvhp:a:f:')
+        opts, args = getopt.getopt(sys.argv[1:], 'ndwvhp:a:f:')
         for o, v in opts:
             if o == '-p':
-                sock = open_socket(int(v))
+                if sock is None:
+                    sock = open_socket(int(v))
+            elif o == '-n':
+                if sock is None:
+                    sock = open_socket(7070)
             elif o == '-v':
                 show_version = True
             elif o == '-h':

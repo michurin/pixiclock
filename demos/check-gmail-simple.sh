@@ -50,8 +50,11 @@
 # Enjoy!
 #
 
+PORT=7070
+PIXICLOCK_CLIENT="python ../pixiclock-client -p $PORT"
+
 curl -n 'https://mail.google.com/mail/feed/atom' 2>/dev/null |
 sed -n '/fullcount/p' |
 grep '>0<' >/dev/null ||
 echo 'BG=#880000;FG=#ffffff;DELAY=600;BG=#444444;DELAY=600;New GMail!' |
-nc localhost 7070
+$PIXICLOCK_CLIENT

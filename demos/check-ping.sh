@@ -30,15 +30,18 @@
 # This very simple script to check is hosts reachable.
 #
 
-hosts='greenwood.endofinternet.net ya.ru not-exists.oo'
+HOSTS='greenwood.endofinternet.net ya.ru not-exists.oo'
+HOSTS='greenwood.endofinternet.net'
+PORT=7070
+PIXICLOCK_CLIENT="python ../pixiclock-client -p $PORT"
 
 a=''
-for i in $hosts
+for i in $HOSTS
 do
   ping -c 1 "$i" >/dev/null 2>&1 || a="$a\nHOST $i: PING FAILED"
 done
 if test "a$a" != 'a'
 then
-  echo -e "GEOMETRY=+100+100;BG=#ff0000;FG=#ffffff;$a" |
-  nc localhost 7070
+  echo -e "GEOMETRY=+500+5;BG=#990000;FG=#ffffff;$a" |
+  $PIXICLOCK_CLIENT
 fi

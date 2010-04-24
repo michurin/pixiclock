@@ -5,6 +5,7 @@ demos/check-gmail-tricky.sh
 demos/check-ping.sh
 demos/demo.sh
 pixiclock
+pixiclock-client
 setup.py
 skins/pixiclock.ini
 skins/tiny.ini

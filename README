@@ -60,10 +60,10 @@ $ pixiclock -d
 NETWORK SCOPE
 -------------
 
-$ pixiclock -p 7070 &
-$ telnet localhost 7070
-$ echo "OK!" | nc localhost 7070
-$ echo "BG=#770000;FG=#ffffff;RED OK!" | nc localhost 7070
+$ pixiclock -n &
+$ pixiclock-client 'OK!'
+$ pixiclock-client 'BG=#770000;FG=#ffffff;RED OK!'
+$ date | pixiclock-client
 
 You can find more eamples in demos/
 

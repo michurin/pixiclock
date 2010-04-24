@@ -33,6 +33,7 @@
 #
 
 PORT=7070
+PIXICLOCK_CLIENT="python ../pixiclock-client -p $PORT"
 
 animation=`
   echo -n 'BG=#ff0000; FG=#ffff00; DELAY=1000; '
@@ -57,8 +58,8 @@ for i in 'Simplest messate (5 seconds)' \
          "$animation" \
          "$twist"
 do
-    echo '----'
     echo "Message: \"$i\""
-    echo "$i" | nc localhost $PORT
+    echo "$i" | $PIXICLOCK_CLIENT
+    echo '----'
     sleep 1
 done
