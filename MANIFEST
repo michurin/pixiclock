@@ -4,6 +4,7 @@ demos/check-gmail-simple.sh
 demos/check-gmail-tricky.sh
 demos/check-ping.sh
 demos/demo.sh
+demos/follow-tkabber.py
 pixiclock
 pixiclock-client
 setup.py

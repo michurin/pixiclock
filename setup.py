@@ -7,7 +7,7 @@ except Exception, e:
     exit(1)
 
 setup(name       = 'pixiclock',
-      version    = '0.3.3',
+      version    = '0.3.4',
       author     = 'Alexey Michurin',
       author_email = 'a.michurin@gmail.com',
       maintainer = 'Alexey Michurin',

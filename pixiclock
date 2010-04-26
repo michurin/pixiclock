@@ -247,7 +247,7 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.3.3'
+VERSION = '0.3.4'
 
 
 import time
@@ -296,6 +296,9 @@ HELP =  (  'Comman line options.\n'
            '    same as -p 7070\n'
            '-a HH:MM\n'
            '    set up alarm; can be used many times\n'
+           '-a HH:MM@/path/command\n'
+           '    set up alarm and command to execute on it\n'
+           '    (there is no way to pass arguments to command yet)'
            '-f FILE\n'
            '    load skin from configuration file;\n'
            '    can be used many times to load diferent\n'
@@ -512,7 +515,12 @@ class popup_menu(Menu):
 
     def alarms_dialog(o):
         if o.root.alarms:
-            a = 'List of alarms:\n\n' + '\n'.join(o.root.alarms)
+            a = 'List of alarms:\n\n' + '\n'.join(
+                   map(
+                     lambda x: x[0] + '\t' + (x[1] or '-'),
+                     sorted(o.root.alarms.items(), key=lambda x: x[0])
+                   )
+                )
         else:
             a = 'Alarms not set.\n\nUse option -a HH:MM\nto set up alarms.'
         dialog(o.root, 'Alarms', a)
@@ -610,8 +618,19 @@ class window(Tk):
         hms = time.localtime()[3:6]
         hm = '%02d:%02d' % tuple(hms[:2])
         if hm in o.alarms and hm != o.alarm_done:
+            cmd = o.alarms[hm]
             o.alarm_done = hm
-            o.start_alarm()
+            if cmd is None:
+                o.start_alarm()
+            else:
+                print cmd
+                try:
+                    pid = os.fork()
+                    if pid <= 0:
+                        os.execv(cmd, ())
+                except OSError, e:
+                    sys.stderr.write('fork #1 failed: %d (%s)' % (e.errno, e.strerror))
+                    sys.exit(1)
         d = 1
         if o.digital_mode:
             d = 0
@@ -756,7 +775,7 @@ def main():
         show_version = False
         show_help = False
         net_port = -1
-        alarms = []
+        alarms = {}
         skin_files = []
         ignore_wm = True
         daemonize_app = False
@@ -774,13 +793,19 @@ def main():
             elif o == '-h':
                 show_help = True
             elif o == '-a':
-                p = v
+                n = v.find('@')
+                if n > 0:
+                    p = v[:n].strip()
+                    c = v[n+1:].strip()
+                else:
+                    p = v.strip()
+                    c = None
                 if len(p) == 4:
                     p = '0' + p
                 if not re.match(r'^[0-2]\d:[0-5]\d$', p):
                     raise Exception(
                           'Incorrect time format %s. Must be HH:MM.' % v)
-                alarms.append(p)
+                alarms[p] = c
             elif o == '-f':
                 skin_files.append(v)
             elif o == '-w':
