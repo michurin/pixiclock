@@ -247,7 +247,7 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 
 
 import time
@@ -256,9 +256,11 @@ import re
 import getopt
 import sys
 import os
+import signal
+import fcntl
 from ConfigParser import ConfigParser
 from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, Frame, \
-                    LEFT, GROOVE, READABLE, NORMAL, DISABLED, \
+                    LEFT, GROOVE, READABLE, EXCEPTION, NORMAL, DISABLED, \
                     StringVar
 
 
@@ -303,6 +305,8 @@ HELP =  (  'Comman line options.\n'
            '    load skin from configuration file;\n'
            '    can be used many times to load diferent\n'
            '    skins in conjunction\n'
+           '-c COMMAND\n'
+           '    piped watchdog command\n'
            '-w\n'
            '    do not ignore window manager\n'
            '-d\n'
@@ -325,7 +329,15 @@ def open_socket(port):
            sock.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) | 1)
     sock.bind(('127.0.0.1', port))
     sock.listen(100)
+    set_close_on_exec(sock)
     return sock
+
+def set_close_on_exec(sock):
+    # the subprocess shouldn't have the listening socket open and other
+    fd = sock.fileno()
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+    flags |= fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
 
 
 class channel:
@@ -333,21 +345,109 @@ class channel:
     def __init__(o, w, sock):
         o.window = w
         o.buffer = ''
-        o.window.tk.createfilehandler(sock, READABLE, o)
+        o.window.tk.createfilehandler(sock, READABLE | EXCEPTION , o)
+        o.window.connections.append(sock)
 
     def __call__(o, s, m):
-        d = s.recv(8000)
+        if (m & EXCEPTION) == 0:
+            d = s.recv(4096)
+        else:
+            d = ''
         if d == '':
             o.window.tk.deletefilehandler(s)
+            o.window.connections.remove(s)
             s.close()
             o.window.accept_data(o.buffer)
         else:
             o.buffer += d
 
 
+class io_proxy:
+
+    def __init__(o, r, fd):
+        o.root = r
+        o.window = r.window
+        o.fd = fd
+        o.td = None
+        o.buffer = ''
+        o.window.tk.createfilehandler(fd, READABLE | EXCEPTION, o)
+
+    def __call__(o, s, m):
+        if (m & EXCEPTION) == 0:
+            # Note: since you don't know how many bytes are available
+            # for reading, you can't use the Python file object's read
+            # or readline methods, since these will insist on reading
+            # a predefined number of bytes.
+            d = os.read(s, 4096)
+        else:
+            d = ''
+        if len(d) == 0:
+            o.root.revival()
+            return
+        o.buffer += d
+        # replan data emition
+        # we emit data if subprocess keep silence during 1/2 second
+        if not o.td is None:
+            o.window.after_cancel(o.td)
+        o.td = o.window.after(500, o.emit_data)
+
+    def emit_data(o):
+        o.window.accept_data(o.buffer)
+        o.buffer = ''
+        o.td = None
+
+    def close(o):
+        os.close(o.fd)
+        o.window.tk.deletefilehandler(o.fd)
+
+
+class proc_manager:
+
+    def __init__(o, w, proc):
+        o.window = w # used by io_proxy
+        o.process = proc
+        o.pid = None
+        o.stdout = None
+        o.up()
+
+    def up(o):
+        r, w = os.pipe()
+        pid = os.fork()
+        if pid:  # this is the parent process
+            os.close(w)
+            o.pid = pid
+            o.stdout = io_proxy(o, r)
+            # we can proxy stderr in the same way
+            # who need?
+        else:    # in the child
+            os.close(r)
+            os.dup2(w, 1) # stdout
+            # the subprocess shouldn't have the listening
+            # socket open and other, but we care about it before
+            # see set_close_on_exec()
+            os.execv(o.process, ())
+
+    def die(o):
+        o.stdout.close()
+        try:
+            os.kill(o.pid, signal.SIGKILL)
+        except OSError:
+            pass
+
+    def revival(o):
+        o.die()
+        o.window.accept_data('BG=#FF0000\n'
+                             'FG=#FFFF00\n'
+                             'DELAY=10000\n'
+                             'INTERNAL ERROR:\n'
+                             'Process\n' + o.process + '\ndies.\n'
+                             'Will be revival in a minute.')
+        o.window.after(60000, o.up)
+
+
 class net_message(Toplevel):
 
-    def __init__(o, r, sock):
+    def __init__(o, r, sock, subprocs):
         Toplevel.__init__(o, r)
         o.withdraw()
         o.overrideredirect(True)
@@ -356,9 +456,15 @@ class net_message(Toplevel):
                         bg='#444444',
                         fg='#cccccc',
                         justify=LEFT,
-                        font=('Helvetica', 10, 'bold'))
+                        font=('Helvetica', 10))
         o.label.pack()
-        o.tk.createfilehandler(sock, READABLE, o.accept_connection)
+        o.sock = sock      # used by proc_manager...
+        o.connections = [] # and channel
+        if sock:
+            o.tk.createfilehandler(sock, READABLE, o.accept_connection)
+        o.subprocs = []
+        for proc in subprocs:
+            o.subprocs.append(proc_manager(o, proc))
         o.prog_handler = None
         o.prog = []
         o.prog_re = re.compile('(BG|FG|GEOMETRY|DELAY|PROLONGATE)'
@@ -367,6 +473,7 @@ class net_message(Toplevel):
 
     def accept_connection(o, s, m):
         sock, addr = s.accept()
+        set_close_on_exec(sock)
         channel(o, sock)
 
     def accept_data(o, data):
@@ -438,6 +545,14 @@ class net_message(Toplevel):
                       ('DELAY', 10000)]
             o.prog_handler = o.after(0, o.exec_prog_step)
 
+    def vanish_connections(o):
+        o.sock.close()
+        for c in o.connections:
+            c.close()
+
+    def vanish_subprocs(o):
+        for p in o.subprocs:
+            p.die()
 
 ################ BASE FUCTIONALITY #################
 
@@ -780,7 +895,8 @@ def main():
         ignore_wm = True
         daemonize_app = False
         sock = None
-        opts, args = getopt.getopt(sys.argv[1:], 'ndwvhp:a:f:')
+        subprocs = []
+        opts, args = getopt.getopt(sys.argv[1:], 'ndwvhp:a:f:c:')
         for o, v in opts:
             if o == '-p':
                 if sock is None:
@@ -788,6 +904,8 @@ def main():
             elif o == '-n':
                 if sock is None:
                     sock = open_socket(7070)
+            elif o == '-c':
+                subprocs.append(v)
             elif o == '-v':
                 show_version = True
             elif o == '-h':
@@ -825,15 +943,28 @@ def main():
     if show_help:
         print HELP
         return
-    # start application
-    r = window(alarms, skins, ignore_wm)
-    # start neworking if confugured
-    if sock:
-        net_message(r, sock)
-    # ok. main loop
+    # daemonize
     if daemonize_app:
         daemonize()
-    r.mainloop()
+    # start application
+    r = window(alarms, skins, ignore_wm)
+    # this line will elect automatic child reaping. sure.
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+    os.putenv('PIXICLOCK', VERSION)
+    # start neworking if confugured
+    links = None
+    if sock or subprocs:
+        links = net_message(r, sock, subprocs)
+    # ok. main loop
+    try:
+        r.mainloop()
+    except Exception, e:
+        print '%s: %s' % (str(e.__class__), str(e))
+    # close all external links
+    # and try to kill all childs
+    if not links is None:
+        links.vanish_subprocs()
+        links.vanish_connections()
 
 
 if __name__ == '__main__':

@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
+
 USAGE = ('Usage:\n'
          '    pixiclock-client message message ...\n'
          '    pixiclock-client -p PORT message message ...')
 
+
 from socket import socket
 from sys import argv, stdin
 from getopt import getopt, GetoptError
+
 
 def main():
 
@@ -21,7 +24,7 @@ def main():
     except GetoptError, e:
         print str(e)
         print USAGE
-        return            
+        return
     except Exception, e:
         print '%s: %s' % (str(e.__class__), str(e))
         return
@@ -33,6 +36,7 @@ def main():
             n = s.send(data)
             data = data[n:]
         s.close()
-        
+
+
 if __name__ == '__main__':
     main()

@@ -36,12 +36,21 @@
 PORT=7070
 PIXICLOCK_CLIENT="python ../pixiclock-client -p $PORT"
 
-f=`
+if test "a$PIXICLOCK" != 'a'
+then
+    PIXICLOCK_CLIENT=cat
+fi
+
+while :
+do
+  f=`
 curl -n 'https://mail.google.com/mail/feed/atom' 2>/dev/null |
 sed -n '/<entry>/, /<\/entry>/ p' |
 sed -n '/title/ p' |
 sed 's/<title>/- /;s/<.title>/ -/'`
-if test "a$f" != 'a'
-then
-  echo "BG=#000000;FG=#ffffff;DELAY=3000;$f" | $PIXICLOCK_CLIENT
-fi
+  if test "a$f" != 'a'
+  then
+    echo "BG=#000000;FG=#ffffff;DELAY=3000;$f" | $PIXICLOCK_CLIENT
+  fi
+  sleep 100
+done

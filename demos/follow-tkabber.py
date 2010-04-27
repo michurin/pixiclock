@@ -1,12 +1,13 @@
 #!/usr/local/bin/python
 
+
 # Copyright (c) 2010 Alexey Michurin <a.michurin@gmail.com>
 
 
 import Tkinter as Tk
 import sys
 import socket
-import sys
+import os
 
 
 host = 'localhost'
@@ -21,30 +22,32 @@ def parse(m):
     n = True
     while m:
         c = m[0]
-	m = m[1:]
+        m = m[1:]
         if c == '{':
-	    m, x = parse(m)
-	    a.append(x)
-	elif c == '}':
-	    return m, a
-	elif c == '\x20':
-	    if not n:
-	        n = True
-	else:
-	    if n:
-	        a.append('')
-		n = False
-	    a[-1] += c
+            m, x = parse(m)
+            a.append(x)
+        elif c == '}':
+            return m, a
+        elif c == '\x20':
+            if not n:
+                n = True
+        else:
+            if n:
+                a.append('')
+                n = False
+            a[-1] += c
     return a
 
 
 class app(Tk.Tk):
+
     def __init__(o, host, port, message_prefix):
         Tk.Tk.__init__(o)
         o.withdraw()
-	o.pixi_sock = (host, port)
-	o.pixi_prefix = message_prefix
-	o.tick()
+        o.pixi_sock = (host, port)
+        o.pixi_prefix = message_prefix
+        o.tick()
+
     def mess(o):
         abb = filter(lambda x: 'tkabber' in x, o.winfo_interps())
         if len(abb) == 0:
@@ -54,25 +57,33 @@ class app(Tk.Tk):
         abb ,= abb
 #        s = o.send(abb, r'array get ifacetk::number_msg')
         s = o.send(abb, r'array get ifacetk::personal_msg')
+#        print "%s: %s" % (abb, s)
         a = parse(s)
         a = filter(lambda x: int(x[1]) > 0, zip(a[0::2], a[1::2]))
         if len(a) == 0:
             return None
         return '\n'.join(map(lambda x: x[0][1] + ' / ' + x[1], a))
+
     def net_send(o, data):
-        s = socket.socket()
-	try:
-            s.connect(o.pixi_sock)
-	except:
-	    return
-        while data:
-            n = s.send(data)
-            data = data[n:]
-	s.close()
+        if os.getenv('PIXICLOCK', None) is None:
+            # we run in network mode
+            s = socket.socket()
+            try:
+                s.connect(o.pixi_sock)
+            except:
+                return
+            while data:
+                n = s.send(data)
+                data = data[n:]
+            s.close()
+        else:
+            # we run in piped mode
+            os.write(1, data)
+
     def tick(o):
         m = o.mess()
-	if m:
-	    o.net_send(o.pixi_prefix + m)
+        if m:
+            o.net_send(o.pixi_prefix + m)
         o.after(2000, o.tick)
 
 
