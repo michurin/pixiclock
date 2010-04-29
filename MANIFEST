@@ -5,6 +5,8 @@ demos/check-gmail-tricky.sh
 demos/check-ping.sh
 demos/demo.sh
 demos/follow-tkabber.py
+demos/forismatic-com.sh
+demos/russin-font.xrdb
 pixiclock
 pixiclock-client
 setup.py

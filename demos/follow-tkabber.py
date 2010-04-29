@@ -84,7 +84,7 @@ class app(Tk.Tk):
         m = o.mess()
         if m:
             o.net_send(o.pixi_prefix + m)
-        o.after(2000, o.tick)
+        o.after(5000, o.tick)
 
 
 app(host, port, message_prefix).mainloop()

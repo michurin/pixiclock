@@ -247,7 +247,7 @@ OO
 # /SETUP SECTIONS
 
 
-VERSION = '0.3.5'
+VERSION = '0.4.0'
 
 
 import time
@@ -285,7 +285,7 @@ ABOUT = (  'PixiClock ' + VERSION + '\n'
         )
 
 
-HELP =  (  'Comman line options.\n'
+HELP =  (  'Command line options.\n'
            '\n'
            '-v\n'
            '    print version\n'
@@ -293,7 +293,7 @@ HELP =  (  'Comman line options.\n'
            '    print help message\n'
            '-p PORT\n'
            '    run pixiclock in network mode on PORT; try\n'
-           '    $ telnet localhost PORT\n'
+           '    $ pixiclock-clietn -p PORT "TEST"\n'
            '-n\n'
            '    same as -p 7070\n'
            '-a HH:MM\n'

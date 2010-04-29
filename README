@@ -12,7 +12,9 @@ Features:
 * Build-in alarm clock
 * Snap-to-border support
 * Hints
-* Easy installation and configuration (for hackers)
+* Flexible control by external applications
+* Skins
+* Easy installation and configuration
 
 Project home: http://pixiclock.googlecode.com/
 
@@ -57,13 +59,96 @@ Start as diemon:
 $ pixiclock -d
 
 
+OPTIONS
+-------
+
+Command line options.
+
+-v
+    print version
+-h
+    print help message
+-p PORT
+    run pixiclock in network mode on PORT; try
+    $ pixiclock-clietn -p PORT "TEST"
+-n
+    same as -p 7070
+-a HH:MM
+    set up alarm; can be used many times
+-a HH:MM@/path/command
+    set up alarm and command to execute on it
+    (there is no way to pass arguments to command yet)-f FILE
+    load skin from configuration file;
+    can be used many times to load diferent
+    skins in conjunction
+-c COMMAND
+    piped watchdog command
+-w
+    do not ignore window manager
+-d
+    daemonize
+
+
+PIPED WATCHDOG SCOPE
+--------------------
+
+You can write a program that periodically produces data to standard output.
+It may look like this:
+
+#!/bin/sh
+# file /home/xxx/example.sh
+LANG=C
+while : # infinite loop
+do
+  # we emit control words and text to display (date)
+  echo 'BG=#ff0000 FG=#ffff00 GEOMETRY=+30+30 DELAY=1000'
+  date
+  # and sleep 10 seconds
+  sleep 10
+done
+
+Now you can run the pixiclock and tell it to use this data provider.
+
+pixiclock -c /home/xxx/example.sh
+
+You can see date message every 10 seconds.
+
+
 NETWORK SCOPE
 -------------
 
+You can communicate with pixiclock via a network connection.
+
+Run the pixiclock in network mode:
+
 $ pixiclock -n &
+
+Use pixiclock-client to send messages to pixiclock:
+
 $ pixiclock-client 'OK!'
 $ pixiclock-client 'BG=#770000;FG=#ffffff;RED OK!'
 $ date | pixiclock-client
+
+Under the agreement, the pixiclock and pixiclock-client uses
+port 7070. You can specify an alternate port. Use the
+option -p N.
+
+
+CONTROL WORDS
+-------------
+
+As you can see above, message may contain control words.
+Control words are separate by space chars or ';' sign.
+You can specify colors, places, and time delays. Examples:
+
+BG=#ff0000 -- red backgound
+FG=#00ff00 -- green foreground
+DEALY=1000 -- delay one second
+GEOMETRY=+10-10 -- place near left-bottom corner of screen
+
+
+DEMOS
+-----
 
 You can find more eamples in demos/
 
@@ -71,7 +156,6 @@ You can find more eamples in demos/
 AUTHORS
 -------
 
-Code writen by Michurin Alexey <a.michurin@google.com>.
+Code writen by Michurin Alexey <a.michurin@gmail.com>.
 The original Óoncept and graphic design belongs to
 Mihail Razuvaev (goglus) <goglus@gmail.com>.
-
