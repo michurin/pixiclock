@@ -23,10 +23,12 @@ do
   (
   n=`date +%s`
   n=$(($n%1000000))
-  wget -qO- --post-data='method=getQuote&key='$n'&format=text&lang='$lang \
-    http://api.forismatic.com/api/1.0/ | fmt -w 40
+  d=`wget -qO- --post-data='method=getQuote&key='$n'&format=text&lang='$lang \
+    http://api.forismatic.com/api/1.0/`
+  echo "$d" | fmt -w 50
+  t=`echo "$d" | wc -c`
   echo "($n)"
-  echo 'BG=#444444'
+  echo 'GEOMETRY=+0-0;BG=#444444'
   a=''
   b=''
   for i in 4 5 6 7 8 9 a b c d
@@ -35,7 +37,7 @@ do
     a="$a$c"
     b="$c$b"
   done
-  echo "${a}DELAY=10000;$b"
+  echo "${a}DELAY=${t}00;$b"
   ) | $client
   sleep 100
 done

@@ -1,3 +1,4 @@
+- information about childs
 - convert to tk-bitmap on loading skin
 - update project homepage
 - root.call('tk', 'appname', 'pixiclock') for r.winfo_interps()

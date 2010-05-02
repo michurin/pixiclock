@@ -27,227 +27,379 @@
 # SUCH DAMAGE.
 #
 
-##################################### GENERIC SKIN
+####################################################
 
-SKIN = {
 
-'border': 3,          # Border width
+VERSION = '0.5.0'
 
-'bgcolor': '#444444', # Backgtound
 
-'fgcolor': '#cccccc', # Foreground
+################ GENERIC SKIN ######################
 
-'scale': 2,           # Scaling factor
+DEFAULT_CONFIG = r'''
+[generic]
+animation_speed: 160
+width: 124
+height: 18
+background: #555555
+position_0_x: 2
+position_0_y: 2
+position_1_x: 20
+position_1_y: 2
+position_2_x: 38
+position_2_y: 2
+position_3_x: 46
+position_3_y: 2
+position_4_x: 64
+position_4_y: 2
+position_5_x: 82
+position_5_y: 2
+position_6_x: 90
+position_6_y: 2
+position_7_x: 108
+position_7_y: 2
+digit_common_head:
+  zoom=2
+  delay=1
+  .=#555555
 
-'digits': (
+digit_0_hint:
+  W=#ffffff
+  .WWWWW.
+  W.....W
+  W...W.W
+  W..W..W
+  W.W...W
+  W.....W
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
 
+digit_0_sign:
+  W=#ffffff
+  .W...W.
+  .WWWWW.
+  W..W..W
+  .WWWWW.
+  .WW.WW.
+  .WWWWW.
+  WW.W.WW
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_1_hint:
+  W=#ffffff
+  ..WW...
+  ...W...
+  ...W...
+  ...W...
+  ...W...
+  ...W...
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_1_sign:
+  W=#ffffff
+  WW...WW
+  WWWWWWW
+  W..W..W
+  WWWWWWW
+  W..W..W
+  ..WWW..
+  WWWWWWW
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_2_hint:
+  W=#ffffff
+  .WWWWW.
+  W.....W
+  ......W
+  ......W
+  .WWWWW.
+  W......
+  WWWWWWW
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_2_sign:
+  W=#ffffff
+  ..W.W..
+  ...W...
+  .WWWWW.
+  WW.W.WW
+  WWWWWWW
+  .WW.WW.
+  ..W.W..
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_3_hint:
+  W=#ffffff
+  .WWWWW.
+  W.....W
+  ......W
+  ...WWW.
+  ......W
+  W.....W
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_3_sign:
+  W=#ffffff
+  .WWWWW.
+  W.WWW.W
+  .WW.WW.
+  ...W...
+  W.WWW.W
+  .WW.WW.
+  W.WWW.W
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_4_hint:
+  W=#ffffff
+  ....WWW
+  ...W..W
+  ..W...W
+  .W....W
+  WWWWWWW
+  ......W
+  ......W
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_4_sign:
+  W=#ffffff
+  .W...W.
+  ..WWW..
+  W.W.W.W
+  WWWWWWW
+  ..WWW..
+  WWWWWWW
+  W.....W
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_5_hint:
+  W=#ffffff
+  WWWWWWW
+  W......
+  WWWWWW.
+  W.....W
+  ......W
+  W.....W
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_5_sign:
+  W=#ffffff
+  WWW.WWW
+  ..W.W..
+  ..WWW..
+  .W.W.W.
+  ..W.W..
+  ..W.W..
+  ...W...
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_6_hint:
+  W=#ffffff
+  .WWWWW.
+  W......
+  WWWWWW.
+  W.....W
+  W.....W
+  W.....W
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_6_sign:
+  W=#ffffff
+  ...W...
+  .WW.WW.
+  W.W.W.W
+  WWWWWWW
+  W..W..W
+  WW.W.WW
+  .WW.WW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_7_hint:
+  W=#ffffff
+  WWWWWWW
+  ......W
+  .....W.
+  ....W..
+  ...W...
+  ...W...
+  ..WWW..
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_7_sign:
+  W=#ffffff
+  .W...W.
+  .WWWWW.
+  W.WWW.W
+  .WWWWW.
+  ..WWW..
+  ..W.W..
+  ...W...
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_8_hint:
+  W=#ffffff
+  .WWWWW.
+  W.....W
+  W.....W
+  .WWWWW.
+  W.....W
+  W.....W
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_8_sign:
+  W=#ffffff
+  .WWWW..
+  W.W.W..
+  WWWWW.W
+  ...WWWW
+  WWWWW..
+  .WWWW..
+  ..W.W..
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_9_hint:
+  W=#ffffff
+  .WWWWW.
+  W.....W
+  W.....W
+  W.....W
+  .WWWWWW
+  ......W
+  .WWWWW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+digit_9_sign:
+  W=#ffffff
+  WWWWWWW
+  W.WWW.W
+  WWW.WWW
+  .W...W.
+  .WWWWW.
+  ..W.W..
+  .WW.WW.
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
+
+separator:
+  W=#ffffff
+  ..
+  WW
+  WW
+  ..
+  WW
+  WW
+  ..
+  +
+  W=#eeeeee
+  +
+  W=#dddddd
+  +
+  W=#cccccc
 '''
-.OOOOO.
-O.....O
-O...O.O
-O..O..O
-O.O...O
-O.....O
-.OOOOO.
 
-''','''
-.O...O.
-.OOOOO.
-O..O..O
-.OOOOO.
-.OO.OO.
-.OOOOO.
-OO.O.OO
-
-''','''
-
-..OO...
-...O...
-...O...
-...O...
-...O...
-...O...
-.OOOOO.
-
-''','''
-OO...OO
-OOOOOOO
-O..O..O
-OOOOOOO
-O..O..O
-..OOO..
-OOOOOOO
-
-''','''
-
-.OOOOO.
-O.....O
-......O
-......O
-.OOOOO.
-O......
-OOOOOOO
-
-''','''
-..O.O..
-...O...
-.OOOOO.
-OO.O.OO
-OOOOOOO
-.OO.OO.
-..O.O..
-
-''','''
-
-.OOOOO.
-O.....O
-......O
-...OOO.
-......O
-O.....O
-.OOOOO.
-
-''','''
-.OOOOO.
-O.OOO.O
-.OO.OO.
-...O...
-O.OOO.O
-.OO.OO.
-O.OOO.O
-
-''','''
-
-....OOO
-...O..O
-..O...O
-.O....O
-OOOOOOO
-......O
-......O
-
-''','''
-.O...O.
-..OOO..
-O.O.O.O
-OOOOOOO
-..OOO..
-OOOOOOO
-O.....O
-
-''','''
-
-OOOOOOO
-O......
-OOOOOO.
-O.....O
-......O
-O.....O
-.OOOOO.
-
-''','''
-
-OOO.OOO
-..O.O..
-..OOO..
-.O.O.O.
-..O.O..
-..O.O..
-...O...
-
-''','''
-
-.OOOOO.
-O......
-OOOOOO.
-O.....O
-O.....O
-O.....O
-.OOOOO.
-
-''','''
-...O...
-.OO.OO.
-O.O.O.O
-OOOOOOO
-O..O..O
-OO.O.OO
-.OO.OO.
-
-''','''
-
-OOOOOOO
-......O
-.....O.
-....O..
-...O...
-...O...
-..OOO..
-
-''','''
-.O...O.
-.OOOOO.
-O.OOO.O
-.OOOOO.
-..OOO..
-..O.O..
-...O...
-
-''','''
-
-.OOOOO.
-O.....O
-O.....O
-.OOOOO.
-O.....O
-O.....O
-.OOOOO.
-
-''','''
-.OOOO..
-O.O.O..
-OOOOO.O
-...OOOO
-OOOOO..
-.OOOO..
-..O.O..
-
-''','''
-
-.OOOOO.
-O.....O
-O.....O
-O.....O
-.OOOOOO
-......O
-.OOOOO.
-
-''','''
-OOOOOOO
-O.OOO.O
-OOO.OOO
-.O...O.
-.OOOOO.
-..O.O..
-.OO.OO.
-
-''','''
-
-..
-OO
-OO
-..
-OO
-OO
-..
-'''
-)}
-
-#####################################
-# /SETUP SECTIONS
-
-
-VERSION = '0.4.0'
+####################################################
 
 
 import time
@@ -259,8 +411,10 @@ import os
 import signal
 import fcntl
 from ConfigParser import ConfigParser
-from Tkinter import Tk, Label, BitmapImage, Menu, Toplevel, Button, Frame, \
-                    LEFT, GROOVE, READABLE, EXCEPTION, NORMAL, DISABLED, \
+from Tkinter import Tk, Label, PhotoImage, Menu, \
+                    Toplevel, Button, Frame, Canvas, \
+                    LEFT, GROOVE, READABLE, EXCEPTION, \
+                    NORMAL, DISABLED, NW, \
                     StringVar
 
 
@@ -314,8 +468,8 @@ HELP =  (  'Command line options.\n'
         )
 
 
-################ NETWORK FUNCTIONALITY #############
-# commands
+################ IPC FUNCTIONALITY #################
+# Commands:
 # BG=#000000
 # FG=#000000
 # GEOMETRY=-10-10
@@ -331,6 +485,7 @@ def open_socket(port):
     sock.listen(100)
     set_close_on_exec(sock)
     return sock
+
 
 def set_close_on_exec(sock):
     # the subprocess shouldn't have the listening socket open and other
@@ -470,6 +625,7 @@ class net_message(Toplevel):
         o.prog_re = re.compile('(BG|FG|GEOMETRY|DELAY|PROLONGATE)'
                                '\s*[=:]\s*'
                                '([-+#a-zA-Z0-9]+);?')
+        o.bind('<1>', o.abort_prog)
 
     def accept_connection(o, s, m):
         sock, addr = s.accept()
@@ -545,6 +701,13 @@ class net_message(Toplevel):
                       ('DELAY', 10000)]
             o.prog_handler = o.after(0, o.exec_prog_step)
 
+    def abort_prog(o, e):
+        if not o.prog_handler is None:
+            o.withdraw()
+            o.prog = []
+            o.after_cancel(o.prog_handler)
+            o.prog_handler = None
+
     def vanish_connections(o):
         o.sock.close()
         for c in o.connections:
@@ -554,36 +717,267 @@ class net_message(Toplevel):
         for p in o.subprocs:
             p.die()
 
-################ BASE FUCTIONALITY #################
+
+################ X-CANVAS ##########################
+# view control: (before image)
+#   C = #XXXXXX
+#   zoom = N
+#   delay = N
+# image description:
+#   Cc
+#   cC
+# flow control: (after image)
+#   + jump
+#   +
 
 
-def pix2xbm(data, factor):
-    xbm = []
-    w = 0
-    h = 0
-    for l in data.strip().split():
-        for p in range(factor):
-            if w == 0:
-                w = len(l)*factor
-            h += 1
-            m = 1
-            n = True
-            for c in l:
-                for q in range(factor):
-                    if n:
-                        xbm.append(0)
-                        n = False
-                    if c == 'O':
-                        xbm[-1] |= m
-                    m *= 2
-                    if m == 256:
-                        m = 1
-                        n = True
-    return ('#define x_width %d\n'
-            '#define x_height %d\n'
-            'static unsigned char x_bits[] = {\n'
-            '%s};\n'
-           ) % (w, h, ', '.join(map(lambda x: '0x%02x' % x, xbm)))
+class sprite_essence:
+
+    def __init__(o, data):
+        # o.prog unit:
+        # 0 - PhotoImage object
+        # 1 - delay
+        # 2 - next frame (out fo range -- done)
+        o.prog = []
+        # prot - program prototype (preprocessed data)
+        # 0 -- array of lines
+        # 1 -- palette
+        # 2 -- zoom
+        # 3 -- delay
+        # 4 -- jump (0 -- stop)
+        prot = []
+        accum = []
+        pal = {}
+        zoom = 1
+        delay = 10
+        drop = False
+        frame = False
+        for l in data.splitlines():
+            for c in '\x20\t':
+                l = l.replace(c, '')
+            if len(l) == 0:
+                continue
+            if l[0] == '#':
+                continue
+            if l[0] == '+':
+                frame = False
+                n = 1
+                if len(l) > 1:
+                    n = int(l[1:])
+                prot.append((accum[:], pal.copy(), zoom, delay, n))
+                drop = True
+                continue
+            frame = True
+            if l[:5] == 'zoom=':
+                zoom = int(l[5:])
+                continue
+            if l[:6] == 'delay=':
+                delay = int(l[6:])
+                continue
+            if l[1:2] == '=':
+                pal[l[0]] = ''.join(map(lambda x: chr(int(l[x:x+2], 16)),
+                                        range(3, 9, 2)))
+                continue
+            if drop:
+                drop = False
+                accum = []
+            accum.append(l)
+        if frame: # append last frame if any
+            prot.append((accum, pal, zoom, delay, 0))
+        # prot ready; convert to o.prog
+        for accum, pal, zoom, delay, jump in prot:
+            o.prog.append((
+               PhotoImage(data = 'P6\n#\n%d %d\n255\n%s' % (
+                             len(accum[0]),
+                             len(accum),
+                             ''.join(map(lambda x: pal[x], ''.join(accum))))
+                         ).zoom(zoom),
+               delay,
+               jump))
+
+
+class sprite:
+
+    def __init__(o, m):
+        o.master = m
+        o.image = m.create_image((0, 0), anchor=NW)
+        o.essence = None
+        o.index = None
+        o.delay = None
+        o.done = True
+
+    def set_essence(o, e):
+        if e == o.essence:
+            return
+        o.essence = e
+        o.delay = o.essence.prog[0][1]
+        if not o.delay is None:
+            o.delay -= 1 # XXX: half loop more of half less?
+        o.index = 0
+        o.done = False
+        o.update()
+
+    def place(o, x, y):
+        o.master.coords(o.image, x, y)
+
+    def update(o):
+        o.master.itemconfigure(o.image, image=o.essence.prog[o.index][0])
+
+    def tick(o):
+        if o.done:
+            return
+        if o.delay == 0:
+            o.index += o.essence.prog[o.index][2]
+            if o.index < 0:
+                o.index = 0
+            if o.index < len(o.essence.prog):
+                o.delay = o.essence.prog[o.index][1]
+            else:
+                o.done = True
+                return
+            o.update()
+        o.delay -= 1
+
+
+class xcanvas(Canvas):
+
+    def __init__(o, m):
+        Canvas.__init__(o, m, highlightthickness=0)
+        o.master = m
+        o.sprites = []
+        o.animation_speed = 100
+        o.tick_loop()
+
+    def create_sprite(o):
+        s = sprite(o)
+        o.sprites.append(s)
+        return s
+
+    def set_animation_speed(o, a):
+        o.animation_speed = a
+
+    def tick_loop(o):
+        for i in o.sprites:
+            i.tick()
+        o.after(o.animation_speed, o.tick_loop)
+
+
+################ CONFIGURATION #####################
+
+
+class odict: # not complete but sufficient implementation of ordered dictionary
+
+    def __init__(o):
+        o.dt = {}
+        o.ks = []
+
+    def __iter__(o):
+        for i in o.ks:
+            yield i, o.dt[i]
+
+    def __setitem__(o, k, v):
+        if not k in o.ks:
+            o.ks.append(k)
+        o.dt[k] = v
+
+    def __getitem__(o, k):
+        return o.dt[k]
+
+    def keys(o):
+        return o.ks[:]
+
+
+class string_feeder: # like StringIO, but ConfigParser use readline() only
+
+    def __init__(o, s):
+        o.a = s.splitlines(True)
+        o.p = -1
+
+    def readline(o):
+        try:
+            o.p += 1
+            return o.a[o.p]
+        except IndexError:
+            return ''
+
+
+class skin_base:
+
+    def __init__(o, files):
+        o.def_skin = None
+        o.skins_base = {}
+        o.names = [] # in order as in config
+        o.readfp(string_feeder(DEFAULT_CONFIG))
+        o.def_skin = None
+        for f in files:
+            o.readfp(open(f, 'r'))
+        if o.def_skin is None:
+            o.def_skin = 'generic'
+
+    def readfp(o, fp):
+        conf = ConfigParser()
+        # experimental hack
+        conf._sections = odict()
+        conf._dict = odict # python 2.6
+        # /hack
+        conf.readfp(fp)
+        sections = conf.sections()
+        if len(sections) == 0:
+            raise Exception('There are no sections found '
+                            'in configuration file %s' % file)
+        for sect in conf.sections():
+            skin = {}
+            # load width, height, background
+            for k, t in (('width', int),
+                         ('height', int),
+                         ('background', str),
+                         ('animation_speed', int)):
+                skin[k] = t(conf.get(sect, k))
+            # load digits
+            a = []
+            for i in range(10):
+                 pfx = 'digit_%d' % i
+                 a.append(map(lambda x: sprite_essence(
+                     conf.get(sect, 'digit_common_head', '') +
+                     conf.get(sect, pfx + '_' + x)),
+                     ('sign', 'hint')))
+            skin['digits'] = a
+            # load separator
+            skin['separator'] = sprite_essence(
+                conf.get(sect, 'digit_common_head', '') +
+                conf.get(sect, 'separator')
+            )
+            # load places
+            p = []
+            for i in range(8):
+                p.append(map(lambda x: conf.get(
+                                 sect,
+                                 'position_%d_%s' % (i, x)), 'xy'))
+            skin['positions'] = p
+            name = sect
+            fix = 0
+            while name in o.skins_base:
+                fix += 1
+                name = '%s (%d)' % (sect, fix)
+            if o.def_skin is None:
+                o.def_skin = name
+            o.skins_base[name] = skin
+            o.names.append(name)
+
+    def get(o):
+        return o.skins_base[o.def_skin]
+
+    def get_name(o):
+        return o.def_skin
+
+    def get_names(o):
+        return o.names
+
+    def set_name(o, s):
+        o.def_skin = s
+
+
+################ MENU ##############################
 
 
 class dialog(Toplevel):
@@ -646,20 +1040,23 @@ class popup_menu(Menu):
         o.root.update_digits()
 
 
+################ MAIN ##############################
+
+
 class window(Tk):
 
-    def __init__(o, alarms, skins, ignore_wm):
-        Tk.__init__(o)
+    def init(o, alarms, skins, ignore_wm):
         if ignore_wm:
             o.overrideredirect(True)
             o.bind('<1>', o.start_motion)
             o.bind('<B1-Motion>', o.continue_motion)
         o.title('pixiclock')
-        o.labels = []
+        o.sprites = []
+        o.xcanva = xcanvas(o)
+        o.xcanva.pack()
         for n in range(8):
-            l = Label(o)
-            o.labels.append(l)
-            l.grid(column=n, row=0)
+            s = o.xcanva.create_sprite()
+            o.sprites.append(s)
         o.alarms = alarms # used by o.popup
         o.alarm_mode = 0
         o.alarm_x = None
@@ -667,10 +1064,10 @@ class window(Tk):
         o.alarm_done = ''
         o.skins = skins # used by o.popup
         o.popup = popup_menu(o)
-        o.load_skin()
         o.digital_mode = False
         o.bind('<3>', o.popup_menu)
         o.bind('<Enter>', o.mouse_enter)
+        o.load_skin()
         o.timer_loop()
 
     def popup_menu(o, e):
@@ -709,25 +1106,19 @@ class window(Tk):
 
     def load_skin(o):
         skin = o.skins.get()
-        o.digits = []
-        # load and save bitmaps; Tk does not save it in parent objects
-        for n in range(21):
-            d = pix2xbm(skin['digits'][n], skin['scale'])
-            o.digits.append(BitmapImage(data=d,
-                                        foreground=skin['fgcolor'],
-                                        background=skin['bgcolor']))
-        # assign images to labels; we must do it before any
-        # other set up operations and labels reconfiguration
-        # cose we lost old images now
-        for n, l in enumerate(o.labels):
-            p = 0
-            if (n+1)%3 == 0:
-                p = 20
-            l.configure(image=o.digits[p])
-        # configure labels
-        for l in o.labels:
-            l.configure(borderwidth=skin['border'],
-                        background=skin['bgcolor'])
+        o.xcanva.set_animation_speed(skin['animation_speed'])
+        o.xcanva.configure(width=skin['width'],
+                           height=skin['height'],
+                           bg=skin['background'])
+
+        i = 0
+        for x, y in skin['positions']:
+            o.sprites[i].place(x, y)
+            if i % 3 == 2:
+                # we need to dispaly only separators
+                o.sprites[i].set_essence(skin['separator'])
+            i += 1
+        o.update_digits()
 
     def update_digits(o):
         hms = time.localtime()[3:6]
@@ -738,7 +1129,6 @@ class window(Tk):
             if cmd is None:
                 o.start_alarm()
             else:
-                print cmd
                 try:
                     pid = os.fork()
                     if pid <= 0:
@@ -746,12 +1136,13 @@ class window(Tk):
                 except OSError, e:
                     sys.stderr.write('fork #1 failed: %d (%s)' % (e.errno, e.strerror))
                     sys.exit(1)
-        d = 1
+        d = 0
         if o.digital_mode:
-            d = 0
+            d = 1
+        skin = o.skins.get()
         for n, v in enumerate(hms):
-            o.labels[n*3].configure(image=o.digits[(v/10)*2 + d])
-            o.labels[n*3+1].configure(image=o.digits[(v%10)*2 + d])
+            o.sprites[n*3].set_essence(skin['digits'][v/10][d])
+            o.sprites[n*3+1].set_essence(skin['digits'][v%10][d])
 
     def timer_loop(o):
         o.update_digits()
@@ -780,84 +1171,6 @@ class window(Tk):
                   (o.winfo_screenheight() - o.winfo_height())/2 + dy)
             )
             o.after(100, o.continue_alarm)
-
-
-class odict: # not complete but sufficient implementation of ordered dictionary
-
-    def __init__(o):
-        o.dt = {}
-        o.ks = []
-
-    def __iter__(o):
-        for i in o.ks:
-            yield i, o.dt[i]
-
-    def __setitem__(o, k, v):
-        if not k in o.ks:
-            o.ks.append(k)
-        o.dt[k] = v
-
-    def __getitem__(o, k):
-        return o.dt[k]
-
-    def keys(o):
-        return o.ks[:]
-
-
-class skin_base:
-
-    def __init__(o, files):
-        o.def_skin = None
-        o.skins_base = {'generic': SKIN}
-        o.names = [] # in order as in config
-        for file in files:
-            conf = ConfigParser()
-            # experimental hack
-            conf._sections = odict()
-            conf._dict = odict # python 2.6
-            # /hack
-            conf.read(file)
-            sections = conf.sections()
-            if len(sections) == 0:
-                raise Exception('There are no sections found '
-                                'in configuration file %s' % file)
-            for sect in conf.sections():
-                skin = {}
-                for k, t in (('border', int),
-                             ('bgcolor', str),
-                             ('fgcolor', str),
-                             ('scale', int)):
-                    skin[k] = t(conf.get(sect, k))
-                a = []
-                for i in range(10):
-                    a.append(conf.get(sect, 'digit%d' % i))
-                    a.append(conf.get(sect, 'icon%d' % i))
-                a.append(conf.get(sect, 'separator'))
-                skin['digits'] = a
-                name = sect
-                fix = 0
-                while name in o.skins_base:
-                    fix += 1
-                    name = '%s (%d)' % (sect, fix)
-                if o.def_skin is None:
-                    o.def_skin = name
-                o.skins_base[name] = skin
-                o.names.append(name)
-        if o.def_skin is None:
-            o.def_skin = 'generic'
-        o.names.append('generic')
-
-    def get(o):
-        return o.skins_base[o.def_skin]
-
-    def get_name(o):
-        return o.def_skin
-
-    def get_names(o):
-        return o.names
-
-    def set_name(o, s):
-        o.def_skin = s
 
 
 def daemonize():
@@ -930,6 +1243,9 @@ def main():
                 ignore_wm = False
             elif o == '-d':
                 daemonize_app = True
+        # we must create root window before loading images
+        # it is Tk specific
+        r = window()
         skins = skin_base(skin_files)
     except getopt.GetoptError, e:
         print str(e)
@@ -946,9 +1262,9 @@ def main():
     # daemonize
     if daemonize_app:
         daemonize()
-    # start application
-    r = window(alarms, skins, ignore_wm)
-    # this line will elect automatic child reaping. sure.
+    # init root window application
+    r.init(alarms, skins, ignore_wm)
+    # this line will elect automatic child reaping. sure
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     os.putenv('PIXICLOCK', VERSION)
     # start neworking if confugured
