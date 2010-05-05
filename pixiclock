@@ -30,7 +30,7 @@
 ####################################################
 
 
-VERSION = '0.5.0'
+VERSION = '0.5.1'
 
 
 ################ GENERIC SKIN ######################
@@ -45,18 +45,14 @@ position_0_x: 2
 position_0_y: 2
 position_1_x: 20
 position_1_y: 2
-position_2_x: 38
+position_2_x: 46
 position_2_y: 2
-position_3_x: 46
+position_3_x: 64
 position_3_y: 2
-position_4_x: 64
+position_4_x: 90
 position_4_y: 2
-position_5_x: 82
+position_5_x: 108
 position_5_y: 2
-position_6_x: 90
-position_6_y: 2
-position_7_x: 108
-position_7_y: 2
 digit_common_head:
   zoom=2
   delay=1
@@ -382,21 +378,17 @@ digit_9_sign:
   +
   W=#cccccc
 
-separator:
-  W=#ffffff
-  ..
-  WW
-  WW
-  ..
-  WW
-  WW
-  ..
-  +
-  W=#eeeeee
-  +
-  W=#dddddd
-  +
+background_image:
   W=#cccccc
+  ..............................................................
+  ..............................................................
+  ...................WW....................WW...................
+  ...................WW....................WW...................
+  ..............................................................
+  ...................WW....................WW...................
+  ...................WW....................WW...................
+  ..............................................................
+  ..............................................................
 '''
 
 ####################################################
@@ -410,6 +402,7 @@ import sys
 import os
 import signal
 import fcntl
+import tempfile
 from ConfigParser import ConfigParser
 from Tkinter import Tk, Label, PhotoImage, Menu, \
                     Toplevel, Button, Frame, Canvas, \
@@ -786,14 +779,32 @@ class sprite_essence:
             prot.append((accum, pal, zoom, delay, 0))
         # prot ready; convert to o.prog
         for accum, pal, zoom, delay, jump in prot:
-            o.prog.append((
-               PhotoImage(data = 'P6\n#\n%d %d\n255\n%s' % (
+            data = 'P6\n# PixiClock\n%d %d\n255\n%s' % (
                              len(accum[0]),
                              len(accum),
                              ''.join(map(lambda x: pal[x], ''.join(accum))))
-                         ).zoom(zoom),
-               delay,
-               jump))
+            # create a PhotoImage
+            # for me yet unidentified reasons the following fail (on some
+            # colors (for example "\x8c"), sizes(?), OS(?), versions(?))
+            #   image = Tkinter.PhotoImage(data=pgm)
+            # Error with Python ??? - 2.5.2 - 2.6.2 - ??? under Windows XP and FreeBSD and ???:
+            #   _tkinter.TclError: truncated PPM data
+            # OsX: distorted images (???)
+            (os_id, abs_path) = tempfile.mkstemp(prefix='pixiclock-', suffix='.ppm')
+            fd = open(abs_path, 'w')
+            fd.write(data)
+            fd.close()
+            o.prog.append((PhotoImage(file = abs_path).zoom(zoom), delay, jump))
+            # close and remove temporary file on disk
+            # os.close is needed under windows for os.remove not to fail
+            try:
+                os.close(os_id)
+            except:
+                pass
+            try:
+                os.remove(abs_path)
+            except:
+                pass
 
 
 class sprite:
@@ -942,14 +953,14 @@ class skin_base:
                      conf.get(sect, pfx + '_' + x)),
                      ('sign', 'hint')))
             skin['digits'] = a
-            # load separator
-            skin['separator'] = sprite_essence(
+            # load background image
+            skin['background_image'] = sprite_essence(
                 conf.get(sect, 'digit_common_head', '') +
-                conf.get(sect, 'separator')
+                conf.get(sect, 'background_image')
             )
             # load places
             p = []
-            for i in range(8):
+            for i in range(6):
                 p.append(map(lambda x: conf.get(
                                  sect,
                                  'position_%d_%s' % (i, x)), 'xy'))
@@ -1054,7 +1065,7 @@ class window(Tk):
         o.sprites = []
         o.xcanva = xcanvas(o)
         o.xcanva.pack()
-        for n in range(8):
+        for n in range(7):
             s = o.xcanva.create_sprite()
             o.sprites.append(s)
         o.alarms = alarms # used by o.popup
@@ -1110,14 +1121,15 @@ class window(Tk):
         o.xcanva.configure(width=skin['width'],
                            height=skin['height'],
                            bg=skin['background'])
-
+        # position of digits
         i = 0
         for x, y in skin['positions']:
-            o.sprites[i].place(x, y)
-            if i % 3 == 2:
-                # we need to dispaly only separators
-                o.sprites[i].set_essence(skin['separator'])
             i += 1
+            o.sprites[i].place(x, y)
+        # position of background [!!!] hardcoded (0, 0)
+        o.sprites[0].place(0, 0)
+        # we need to dispaly only background
+        o.sprites[0].set_essence(skin['background_image'])
         o.update_digits()
 
     def update_digits(o):
@@ -1141,8 +1153,8 @@ class window(Tk):
             d = 1
         skin = o.skins.get()
         for n, v in enumerate(hms):
-            o.sprites[n*3].set_essence(skin['digits'][v/10][d])
-            o.sprites[n*3+1].set_essence(skin['digits'][v%10][d])
+            o.sprites[n*2+1].set_essence(skin['digits'][v/10][d])
+            o.sprites[n*2+2].set_essence(skin['digits'][v%10][d])
 
     def timer_loop(o):
         o.update_digits()

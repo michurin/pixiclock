@@ -1,3 +1,6 @@
+- skins:
+  - binary
+  - Russian abacus
 - information about childs
 - convert to tk-bitmap on loading skin
 - update project homepage

@@ -10,6 +10,8 @@ demos/russin-font.xrdb
 pixiclock
 pixiclock-client
 setup.py
+skins/binary.ini
 skins/figurefall.ini
-skins/pixiclock.ini
+skins/psychedelic.ini
+skins/rus-abacus.ini
 skins/tiny.ini
