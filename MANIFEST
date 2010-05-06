@@ -6,6 +6,7 @@ demos/check-ping.sh
 demos/demo.sh
 demos/follow-tkabber.py
 demos/forismatic-com.sh
+demos/rss-reader.py
 demos/russin-font.xrdb
 pixiclock
 pixiclock-client
