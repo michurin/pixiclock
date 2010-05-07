@@ -1,37 +1,79 @@
 #!/usr/local/bin/python
 
+
 # Copyright (c) 2010 Alexey Michurin <a.michurin@gmail.com>
 
-URL = 'http://news.yandex.ru/world.rss'
+
+URL = 'http://rss.cnn.com/rss/edition.rss'
+FMT = '%a, %d %b %Y %H:%M:%S EDT'
+BG = '#ffff99'
+FG = '#000000'
+DELAY = 100
+
 
 import urllib
 from xml.dom import minidom
 from time import mktime, strptime, sleep
 import sys
 
-last_date = 0
 
-while True:
-    # we get DOM from URL
-    dom = minidom.parse(urllib.urlopen(URL))
-    # now collect titles
-    arr = []
-    for i in dom.getElementsByTagName('item'):
-        a = i.getElementsByTagName('title')[0].firstChild.data.encode('utf-8')
-        l = i.getElementsByTagName('pubDate')[0].firstChild.data
-        # in modern pythons use %z instead '+0400'
-        b = int(mktime(strptime(l, '%a, %d %b %Y %H:%M:%S +0400')))
-        arr.append((a, b))
-    # sort it
-    arr.sort(key=lambda x: x[1], reverse=True)
-    # if we has any news...
-    if last_date < arr[0][1]:
-        # ...we ptint out message
-        print 'GEOMETRY=-200-10;BG=#FFFF99;FG=#000000;DELAY=10000'
-        for a, b in arr:
-            if b > last_date:
-                print a
-    sys.stdout.flush() # do not forget! or use os.write(1)
-    # we done. update time and go to sleep
-    last_date = arr[0][1]
-    sleep(100)
+class reader:
+
+    def __init__(o, url, fmt):
+        o.last_date = 0
+        o.url = url
+        o.fmt = fmt
+
+    def __call__(o):
+        try:
+            data = urllib.urlopen(o.url)
+        except Exception, e:
+            return 'ERROR: urllib.urlopen(%s):\n%s' % (o.url, str(e))
+        try:
+            dom = minidom.parse(data)
+        except Exception, e:
+            return 'ERROR: Can not parse XML'
+        arr = []
+        for i in dom.getElementsByTagName('item'):
+            a = i.getElementsByTagName('title')[0].firstChild.data.encode('utf-8')
+            l = i.getElementsByTagName('pubDate')[0].firstChild.data
+            # Some feeds can use alternative time format.
+            # Look at the options %Z or %z (modern Python only).
+            try:
+                b = int(mktime(strptime(l, o.fmt)))
+            except ValueError, e:
+                return ('ERROR: %s\n'
+                        'Fix FMT variable at the beginning of the program'
+                       ) % str(e)
+            arr.append((a.strip(), b))
+        # sort it
+        arr.sort(key=lambda x: x[1], reverse=True)
+        # if we has any news...
+        if o.last_date < arr[0][1]:
+            # ...we prepare message
+            feed = ''
+            for a, b in arr:
+                if b > o.last_date:
+                    feed += '\n' + a
+            o.last_date = arr[0][1]
+            return feed
+        else:
+            return None
+
+
+def main():
+    o = reader(URL, FMT)
+    while True:
+        f = o()
+        if f:
+            sys.stdout.write(
+              'GEOMETRY=+10-10;BG=%s;FG=%s;DELAY=%s;%s' % (
+                   BG, FG, min(len(f)*100, 20000), f)
+            )
+            sys.stdout.flush() # do not forget! or use os.write(1)
+        # we done. update time and go to sleep
+        sleep(DELAY)
+
+
+if __name__ == '__main__':
+    main()

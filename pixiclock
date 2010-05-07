@@ -30,7 +30,7 @@
 ####################################################
 
 
-VERSION = '0.5.1'
+VERSION = '0.5.2'
 
 
 ################ GENERIC SKIN ######################
@@ -545,7 +545,10 @@ class io_proxy:
         o.td = None
 
     def close(o):
-        os.close(o.fd)
+        try:
+            os.close(o.fd)
+        except OSError: # pass if 'Bad file descriptor'
+            pass
         o.window.tk.deletefilehandler(o.fd)
 
 
@@ -581,6 +584,7 @@ class proc_manager:
             os.kill(o.pid, signal.SIGKILL)
         except OSError:
             pass
+        o.pid = None
 
     def revival(o):
         o.die()
@@ -606,8 +610,8 @@ class net_message(Toplevel):
                         justify=LEFT,
                         font=('Helvetica', 10))
         o.label.pack()
-        o.sock = sock      # used by proc_manager...
-        o.connections = [] # and channel
+        o.sock = sock
+        o.connections = [] # used by channel
         if sock:
             o.tk.createfilehandler(sock, READABLE, o.accept_connection)
         o.subprocs = []
@@ -649,6 +653,11 @@ class net_message(Toplevel):
             prog.append((c, p))
             mess += data[pos:m.start()]
             pos = m.end()
+        # we add commands in this order:
+        # - text (purified from control sequences; should always be the first)
+        # - default action
+        # - actions specified in the message
+        # - delay (if not specified; should always be the last)
         o.prog.extend([('TEXT', mess.strip())] +
                       pre_defaults.items() +
                       prog)
@@ -695,20 +704,56 @@ class net_message(Toplevel):
             o.prog_handler = o.after(0, o.exec_prog_step)
 
     def abort_prog(o, e):
-        if not o.prog_handler is None:
-            o.withdraw()
-            o.prog = []
-            o.after_cancel(o.prog_handler)
-            o.prog_handler = None
+        # nothing to abort -- return
+        if o.prog_handler is None:
+            return
+        # terminate execution
+        o.after_cancel(o.prog_handler)
+        o.prog_handler = None
+        o.withdraw()
+        # remove all commands to the nearest TEXT
+        while o.prog:
+            if o.prog[0][0] == 'TEXT':
+                break
+            o.prog = o.prog[1:]
+        # If we still have commands, then resume execution.
+        if o.prog:
+            o.exec_prog_step()
 
     def vanish_connections(o):
-        o.sock.close()
+        if not o.sock is None:
+            o.sock.close()
         for c in o.connections:
             c.close()
 
     def vanish_subprocs(o):
         for p in o.subprocs:
             p.die()
+
+    def report(o):
+        # prepare ascii report for UI
+        l = 'Subprocesses (-c):'
+        if o.subprocs:
+            for s in o.subprocs:
+                pid, pn = s.pid, s.process
+                if pid is None:
+                    pid = '-'
+                    pn = '[' + pn + ']'
+                l += '\n   %s\t%s' % (pid, pn)
+        else:
+            l += '\n   [none]'
+        if o.sock is None:
+            l += 'Network disabled.'
+        else:
+            l += '\nListen on (-n, -p):\n   %s:%d' % o.sock.getsockname()
+            if o.connections:
+                 l += '\nActive connections:'
+                 for c in o.connections:
+                     l += '\n   %s:%d <-> %s:%d' % (c.getsockname() + c.getpeername())
+            else:
+                 l += '\nNo one connected yet.'
+
+        return l
 
 
 ################ X-CANVAS ##########################
@@ -783,13 +828,40 @@ class sprite_essence:
                              len(accum[0]),
                              len(accum),
                              ''.join(map(lambda x: pal[x], ''.join(accum))))
-            # create a PhotoImage
-            # for me yet unidentified reasons the following fail (on some
-            # colors (for example "\x8c"), sizes(?), OS(?), versions(?))
-            #   image = Tkinter.PhotoImage(data=pgm)
-            # Error with Python ??? - 2.5.2 - 2.6.2 - ??? under Windows XP and FreeBSD and ???:
+            #
+            # Create a PhotoImage
+            # For me yet unidentified reasons the following fail:
+            #   image = Tkinter.PhotoImage(data=data)
+            # Error with Python:
             #   _tkinter.TclError: truncated PPM data
             # OsX: distorted images (???)
+            #
+            # For example, these data correctly loaded from the file,
+            # but can not be downloaded directly.
+            #   'P6\n1 1\n255\n\xd6\x8d\x95'
+            # Observed, that the trouble occurs when the color value
+            # greater than 0xC0. UTF?
+            #
+            # What I dig:
+            #
+            # All interaction with Tk passes through the function
+            #   static PyObject * Tkapp_Call(PyObject *selfptr, PyObject *args)
+            # which handles all the arguments in a unified manner,
+            # through the function
+            #   static Tcl_Obj* AsObj(PyObject *value)
+            # This function tries to parse unicode-data and leads to
+            # deterioration of binary data.
+            # I see no easy way to fix this situation.
+            #
+            # In fact, the exception occurs in $(TK_SOURCE)/generic/tkImgPPM.c
+            # But i'm sure (I checked it out myself), that tkImgPPM.c
+            # is not guilty. Apparently, the problems still in _tkinter.c
+            # design ($(PYTHON_SOURCE)/Modules/_tkinter.c).
+            #
+            # See also:
+            # #define PyUnicode_Check
+            # in $(PYTHON_SOURCE)/Include/unicodeobject.h
+            #
             (os_id, abs_path) = tempfile.mkstemp(prefix='pixiclock-', suffix='.ppm')
             fd = open(abs_path, 'w')
             fd.write(data)
@@ -1022,10 +1094,14 @@ class popup_menu(Menu):
                     variable=o.skin,
                     value=m)
         o.add_cascade(label='Skins', menu=o.skin_menu, state=s)
+        s = DISABLED
+        if not r.ext_links is None:
+            s = NORMAL
+        o.add_command(label='IPC info', command=o.ipc_dialog, state=s)
         o.add_command(label='Alarms', command=o.alarms_dialog)
         o.add_command(label='About', command=o.about_dialog)
         o.add_command(label='Help', command=o.help_dialog)
-        o.add_command(label='Exit', command=r.quit)
+        o.add_command(label='Exit', command=o.root.quit)
 
     def about_dialog(o):
         dialog(o.root, 'About', ABOUT)
@@ -1050,13 +1126,15 @@ class popup_menu(Menu):
         o.root.load_skin()
         o.root.update_digits()
 
+    def ipc_dialog(o):
+        dialog(o.root, 'IPC info', o.root.ext_links.report())
 
 ################ MAIN ##############################
 
 
 class window(Tk):
 
-    def init(o, alarms, skins, ignore_wm):
+    def init(o, alarms, skins, links, ignore_wm):
         if ignore_wm:
             o.overrideredirect(True)
             o.bind('<1>', o.start_motion)
@@ -1074,6 +1152,7 @@ class window(Tk):
         o.alarm_y = None
         o.alarm_done = ''
         o.skins = skins # used by o.popup
+        o.ext_links = links # used by o.popup only
         o.popup = popup_menu(o)
         o.digital_mode = False
         o.bind('<3>', o.popup_menu)
@@ -1230,7 +1309,8 @@ def main():
                 if sock is None:
                     sock = open_socket(7070)
             elif o == '-c':
-                subprocs.append(v)
+                # we must use abspath, cause we change CWD in daemon mode
+                subprocs.append(os.path.abspath(v))
             elif o == '-v':
                 show_version = True
             elif o == '-h':
@@ -1274,8 +1354,6 @@ def main():
     # daemonize
     if daemonize_app:
         daemonize()
-    # init root window application
-    r.init(alarms, skins, ignore_wm)
     # this line will elect automatic child reaping. sure
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     os.putenv('PIXICLOCK', VERSION)
@@ -1283,6 +1361,8 @@ def main():
     links = None
     if sock or subprocs:
         links = net_message(r, sock, subprocs)
+    # init root window application
+    r.init(alarms, skins, links, ignore_wm)
     # ok. main loop
     try:
         r.mainloop()

@@ -1,31 +1,10 @@
-- skins:
-  - binary
-  - Russian abacus
-- information about childs
-- convert to tk-bitmap on loading skin
+- RSS: time format
+- right-click abort all messages
+- README: how to try examples
 - update project homepage
 - root.call('tk', 'appname', 'pixiclock') for r.winfo_interps()
 - option "always on top"
-- examples and documentation for network control language
-- animation
-- color effects
 - transparency
-- background image
 - color picker tool
-- execute external programs on alarm or events
-- extend image formt in skin-files
-  Q=#ffffff
-  o=#999999
-  exposition=100
-  .o.
-  oQo
-  .o.
-  Q=#ffffff
-  o=#999999
-  exposition=200
-  o.o
-  .Q.
-  o.o
-  loop=1
 
 Any ideas?
