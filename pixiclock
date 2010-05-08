@@ -30,7 +30,7 @@
 ####################################################
 
 
-VERSION = '0.5.2'
+VERSION = '0.5.3'
 
 
 ################ GENERIC SKIN ######################
@@ -623,6 +623,7 @@ class net_message(Toplevel):
                                '\s*[=:]\s*'
                                '([-+#a-zA-Z0-9]+);?')
         o.bind('<1>', o.abort_prog)
+        o.bind('<3>', o.abort_all_prog)
 
     def accept_connection(o, s, m):
         sock, addr = s.accept()
@@ -703,7 +704,7 @@ class net_message(Toplevel):
                       ('DELAY', 10000)]
             o.prog_handler = o.after(0, o.exec_prog_step)
 
-    def abort_prog(o, e):
+    def stop_prog(o):
         # nothing to abort -- return
         if o.prog_handler is None:
             return
@@ -711,6 +712,13 @@ class net_message(Toplevel):
         o.after_cancel(o.prog_handler)
         o.prog_handler = None
         o.withdraw()
+
+    def abort_all_prog(o, e):
+        o.stop_prog()
+        o.prog = []
+
+    def abort_prog(o, e):
+        o.stop_prog()
         # remove all commands to the nearest TEXT
         while o.prog:
             if o.prog[0][0] == 'TEXT':
@@ -752,7 +760,6 @@ class net_message(Toplevel):
                      l += '\n   %s:%d <-> %s:%d' % (c.getsockname() + c.getpeername())
             else:
                  l += '\nNo one connected yet.'
-
         return l
 
 

@@ -1,5 +1,6 @@
 - RSS: time format
 - right-click abort all messages
+- alarms menu item must be passive, if no alarms set
 - README: how to try examples
 - update project homepage
 - root.call('tk', 'appname', 'pixiclock') for r.winfo_interps()
