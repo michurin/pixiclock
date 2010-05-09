@@ -3,43 +3,36 @@
 
 # Copyright (c) 2010 Alexey Michurin <a.michurin@gmail.com>
 
-# SETUP SECTION
+# Example rss-feed reader for hh.ru.
+# (slightly modified version of rss-reader.py)
+# C++
+# Moscow
 
-URL = 'http://rss.cnn.com/rss/edition.rss'
-FMT = '%a, %d %b %Y %H:%M:%S EDT'
-BG = '#ffff99'
+
+URL = 'http://hh.ru/rss/searchvacancy.xml?areaId=1&desireableCompensation=60000&vacancyNameField=true&text=C%2B%2B&itemsOnPage=100&compensationCurrencyCode=RUR&orderBy=2&searchPeriod=30&professionalAreaId=0'
+BG = '#cde3fc'
 FG = '#000000'
 DELAY = 100
-
-# example
-# URL = 'http://www.opennet.ru/opennews/opennews_all.rss'
-# FMT = '%a, %d %b %Y %H:%M:%S +0500'
-# BG = '#dde1c2'
-# FG = '#464a3c'
-# DELAY = 100
-
-# one more example
-# URL = 'http://news.yandex.ru/world.rss'
-# FMT = '%a, %d %b %Y %H:%M:%S +0400'
-# BG = '#ffff99'
-# FG = '#000000'
-# DELAY = 100
-
-# /SETUP SECTION
 
 
 import urllib
 from xml.dom import minidom
-from time import mktime, strptime, sleep
+from time import sleep
 import sys
+
+
+def get_data(e, t, d='-'):
+    c = e.getElementsByTagName(t)[0].firstChild
+    if c is None:
+        return d
+    return c.data
 
 
 class reader:
 
-    def __init__(o, url, fmt):
+    def __init__(o, url):
         o.last_date = 0
         o.url = url
-        o.fmt = fmt
 
     def __call__(o):
         try:
@@ -52,16 +45,23 @@ class reader:
             return 'ERROR: Can not parse XML'
         arr = []
         for i in dom.getElementsByTagName('item'):
-            a = i.getElementsByTagName('title')[0].firstChild.data.encode('utf-8')
-            l = i.getElementsByTagName('pubDate')[0].firstChild.data
-            # Some feeds can use alternative time format.
-            # Look at the options %Z or %z (modern Python only).
-            try:
-                b = int(mktime(strptime(l, o.fmt)))
-            except ValueError, e:
-                return ('ERROR: %s\n'
-                        'Fix FMT variable at the beginning of the program'
-                       ) % str(e)
+            a = (
+            '' +
+            get_data(i, 'hhvac:vacancyId') +
+            '\n' +
+            get_data(i, 'title') +
+            '\n   ' +
+            get_data(i, 'hhvac:employerName') +
+            ' / ' +
+            get_data(i, 'hhvac:areaName') +
+            '\n   ' +
+            get_data(i, 'hhvac:compensationFrom', '0') +
+            ' - ' +
+            get_data(i, 'hhvac:compensationTo', 'inf') +
+            ' ' +
+            get_data(i, 'hhvac:compensationCurrency', 'peso')
+            )
+            b = i.getElementsByTagName('pubDate')[0].firstChild.data
             arr.append((a.strip(), b))
         # sort it
         arr.sort(key=lambda x: x[1], reverse=True)
@@ -72,6 +72,9 @@ class reader:
             for a, b in arr:
                 if b > o.last_date:
                     feed += '\n' + a
+                if len(feed) > 1000:
+                    feed += '\n...'
+                    break
             o.last_date = arr[0][1]
             return feed
         else:
@@ -79,13 +82,13 @@ class reader:
 
 
 def main():
-    o = reader(URL, FMT)
+    o = reader(URL)
     while True:
         f = o()
         if f:
             sys.stdout.write(
               'GEOMETRY=+10-10;BG=%s;FG=%s;DELAY=%s;%s' % (
-                   BG, FG, min(len(f)*100, 20000), f)
+                   BG, FG, min(len(f)*200, 120000), f.encode('utf-8'))
             )
             sys.stdout.flush() # do not forget! or use os.write(1)
         # we done. update time and go to sleep
