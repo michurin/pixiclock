@@ -30,7 +30,7 @@
 ####################################################
 
 
-VERSION = '0.5.3'
+VERSION = '0.5.4'
 
 
 ################ GENERIC SKIN ######################
@@ -447,7 +447,7 @@ HELP =  (  'Command line options.\n'
            '    set up alarm; can be used many times\n'
            '-a HH:MM@/path/command\n'
            '    set up alarm and command to execute on it\n'
-           '    (there is no way to pass arguments to command yet)'
+           '    (there is no way to pass arguments to command yet)\n'
            '-f FILE\n'
            '    load skin from configuration file;\n'
            '    can be used many times to load diferent\n'
@@ -751,7 +751,7 @@ class net_message(Toplevel):
         else:
             l += '\n   [none]'
         if o.sock is None:
-            l += 'Network disabled.'
+            l += '\nNetwork disabled.'
         else:
             l += '\nListen on (-n, -p):\n   %s:%d' % o.sock.getsockname()
             if o.connections:
@@ -1101,10 +1101,7 @@ class popup_menu(Menu):
                     variable=o.skin,
                     value=m)
         o.add_cascade(label='Skins', menu=o.skin_menu, state=s)
-        s = DISABLED
-        if not r.ext_links is None:
-            s = NORMAL
-        o.add_command(label='IPC info', command=o.ipc_dialog, state=s)
+        o.add_command(label='IPC info', command=o.ipc_dialog)
         o.add_command(label='Alarms', command=o.alarms_dialog)
         o.add_command(label='About', command=o.about_dialog)
         o.add_command(label='Help', command=o.help_dialog)
@@ -1134,7 +1131,11 @@ class popup_menu(Menu):
         o.root.update_digits()
 
     def ipc_dialog(o):
-        dialog(o.root, 'IPC info', o.root.ext_links.report())
+        if o.root.ext_links is None:
+            a = 'IPC not used now.\n\nUse options -n, -p, -c\nto set up IPC.'
+        else:
+            a = o.root.ext_links.report()
+        dialog(o.root, 'IPC info', a)
 
 ################ MAIN ##############################
 
