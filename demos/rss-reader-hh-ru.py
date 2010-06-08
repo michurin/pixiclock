@@ -10,8 +10,6 @@
 
 
 URL = 'http://hh.ru/rss/searchvacancy.xml?areaId=1&desireableCompensation=60000&vacancyNameField=true&text=C%2B%2B&itemsOnPage=100&compensationCurrencyCode=RUR&orderBy=2&searchPeriod=30&professionalAreaId=0'
-BG = '#cde3fc'
-FG = '#000000'
 DELAY = 100
 
 
@@ -83,12 +81,19 @@ class reader:
 
 def main():
     o = reader(URL)
+    effect = 'BG=#cde3fc;FG=#000000;GEOMETRY=+10-10\n'
+    for i in range(8):
+        j = 7 - i
+        effect += ('BDWIDTH=' + str(j) +
+                   ';MARGIN=' + str(i) +
+                   ';BD=#' + (('%x' % ((i%2)*15))*6) +
+                   ';DELAY=70\n')
     while True:
         f = o()
         if f:
             sys.stdout.write(
-              'GEOMETRY=+10-10;BG=%s;FG=%s;DELAY=%s;%s' % (
-                   BG, FG, min(len(f)*200, 120000), f.encode('utf-8'))
+              f.encode('utf-8') + effect +
+              ('DELAY=%s;' % min(len(f)*400, 120000))
             )
             sys.stdout.flush() # do not forget! or use os.write(1)
         # we done. update time and go to sleep

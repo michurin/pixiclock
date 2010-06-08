@@ -160,6 +160,9 @@ You can specify colors, places, and time delays. Examples:
 
 BG=#ff0000 -- red backgound
 FG=#00ff00 -- green foreground
+BD=#0000ff -- blue border
+BDWIDTH=7  -- set border width to 7 pxels
+MARGIN=20  -- set margin to 20 pixels
 DEALY=1000 -- delay one second
 GEOMETRY=+10-10 -- place near left-bottom corner of screen
 

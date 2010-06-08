@@ -465,7 +465,10 @@ HELP =  (  'Command line options.\n'
 # Commands:
 # BG=#000000
 # FG=#000000
+# BD=#000000
+# BDWIDTH=2
 # GEOMETRY=-10-10
+# MARGIN=4
 # DELAY=1000
 
 
@@ -588,8 +591,12 @@ class proc_manager:
 
     def revival(o):
         o.die()
-        o.window.accept_data('BG=#FF0000\n'
-                             'FG=#FFFF00\n'
+        o.window.accept_data('BG=#CC0000\n'
+                             'FG=#FFFFFF\n'
+                             'BD=#FFFFFF\n'
+                             'BDWIDTH=1\n'
+                             'MARGIN=7\n'
+                             'GEOMETRY=-10-100\n'
                              'DELAY=10000\n'
                              'INTERNAL ERROR:\n'
                              'Process\n' + o.process + '\ndies.\n'
@@ -608,6 +615,8 @@ class net_message(Toplevel):
                         bg='#444444',
                         fg='#cccccc',
                         justify=LEFT,
+                        highlightthickness=0,
+                        borderwidth=0,
                         font=('Helvetica', 10))
         o.label.pack()
         o.sock = sock
@@ -619,7 +628,8 @@ class net_message(Toplevel):
             o.subprocs.append(proc_manager(o, proc))
         o.prog_handler = None
         o.prog = []
-        o.prog_re = re.compile('(BG|FG|GEOMETRY|DELAY|PROLONGATE)'
+        o.prog_re = re.compile('(BG|FG|BD|BDWIDTH|MARGIN|GEOMETRY'
+                               '|DELAY|PROLONGATE)'
                                '\s*[=:]\s*'
                                '([-+#a-zA-Z0-9]+);?')
         o.bind('<1>', o.abort_prog)
@@ -636,7 +646,10 @@ class net_message(Toplevel):
         mess = ''
         pre_defaults = {'GEOMETRY': '-10-10',
                         'BG': '#444444',
-                        'FG': '#cccccc'}
+                        'FG': '#cccccc',
+                        'BD': '#000000',
+                        'BDWIDTH': 1,
+                        'MARGIN': 3}
         delay_found = False
         while True:
             m = o.prog_re.search(data, pos)
@@ -682,8 +695,14 @@ class net_message(Toplevel):
                     o.label.config(bg=p)
                 elif c == 'FG':
                     o.label.config(fg=p)
+                elif c == 'BD':
+                    o.label.config(highlightbackground=p)
+                elif c == 'BDWIDTH':
+                    o.label.config(highlightthickness=int(p))
                 elif c == 'GEOMETRY':
                     o.geometry(p)
+                elif c == 'MARGIN':
+                    o.label.config(borderwidth=int(p))
                 elif c == 'DELAY':
                     if o.prog_handler is None:
                         o.deiconify()
@@ -697,12 +716,17 @@ class net_message(Toplevel):
         except Exception, e:
             err = 'ERROR %s=%s: %s' % (c, p, str(e))
             print err
+            o.stop_prog()
             o.prog = [('TEXT', str(err)),
                       ('GEOMETRY', '-10-100'),
                       ('BG', '#990000'),
                       ('FG', '#ffffff'),
+                      ('BD', '#ffff00'),
+                      ('BDWIDTH', 5),
+                      ('MARGIN', 5),
                       ('DELAY', 10000)]
-            o.prog_handler = o.after(0, o.exec_prog_step)
+            # spec. case: we leave o.prog_handler = None
+            o.after(0, o.exec_prog_step)
 
     def stop_prog(o):
         # nothing to abort -- return
