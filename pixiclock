@@ -456,6 +456,8 @@ HELP =  (  'Command line options.\n'
            '    piped watchdog command\n'
            '-w\n'
            '    do not ignore window manager\n'
+           '-g GEOMETRY\n'
+           '    geometry of main window in X-format.\n'
            '-d\n'
            '    daemonize'
         )
@@ -1332,7 +1334,8 @@ def main():
         daemonize_app = False
         sock = None
         subprocs = []
-        opts, args = getopt.getopt(sys.argv[1:], 'ndwvhp:a:f:c:')
+        geom = '-1-1'
+        opts, args = getopt.getopt(sys.argv[1:], 'ndwvhp:a:f:c:g:')
         for o, v in opts:
             if o == '-p':
                 if sock is None:
@@ -1367,10 +1370,13 @@ def main():
                 ignore_wm = False
             elif o == '-d':
                 daemonize_app = True
+            elif o == '-g':
+                geom = v
         # we must create root window before loading images
         # it is Tk specific
         r = window()
         skins = skin_base(skin_files)
+        r.geometry(geom)
     except getopt.GetoptError, e:
         print str(e)
         return
