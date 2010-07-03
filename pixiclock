@@ -30,7 +30,7 @@
 ####################################################
 
 
-VERSION = '0.5.4'
+VERSION = '0.5.8'
 
 
 ################ GENERIC SKIN ######################
@@ -403,6 +403,7 @@ import os
 import signal
 import fcntl
 import tempfile
+import codecs
 from ConfigParser import ConfigParser
 from Tkinter import Tk, Label, PhotoImage, Menu, \
                     Toplevel, Button, Frame, Canvas, \
@@ -545,6 +546,26 @@ class io_proxy:
         o.td = o.window.after(500, o.emit_data)
 
     def emit_data(o):
+        # we must check is string valid UTF-8
+        # otherwise Tk-font-engine may break
+        try:
+            codecs.getdecoder('UTF-8')(o.buffer)
+        except UnicodeDecodeError:
+            o.buffer = 'Sorry. Data not valid UTF-8 string.'
+        # BUT:
+        #   It is not complete solution!
+        #   For example the string '\xe2\x80\x8f' UTF
+        #   is valid (0xE = 1110b: start of 3-byte sequence),
+        #   but it breaks Tk library with message:
+        # X Error of failed request:  BadValue (integer parameter \
+        # out of range for operation)
+        #   Major opcode of failed request:  45 (X_OpenFont)
+        #   Value in failed request:  0x2a00047
+        #   Serial number of failed request:  745
+        #   Current serial number in output stream:  746
+        # It affects to Georgian alphabet, Indian, Chinese,
+        # Korean, Japanese and may be other alphabets
+        # Is it bug in Tk?
         o.window.accept_data(o.buffer)
         o.buffer = ''
         o.td = None
